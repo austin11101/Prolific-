@@ -1,0 +1,10 @@
+**/.dart_tool/
+**/.idea/
+**/.gradle/
+**/build/
+**/coverage/
+**/dist/
+**/node_modules/
+apps/mobile/ios/Pods/
+package-lock.json
+apps/mobile/pubspec.lock

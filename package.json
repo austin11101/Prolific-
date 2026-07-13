@@ -1,0 +1,40 @@
+{
+  "name": "prolific-platform",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Prolific platform monorepo",
+  "workspaces": [
+    "services/core-api"
+  ],
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "dev:api": "npm --workspace @prolific/core-api run start:dev",
+    "dev:mobile": "cd apps/mobile && flutter run",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs --follow postgres",
+    "format": "npm run format:root && npm run format:api && npm run format:mobile",
+    "format:check": "npm run format:root:check && npm run format:api:check && npm run format:mobile:check",
+    "format:root": "prettier --write package.json services/core-api/package.json apps/mobile/pubspec.yaml compose.yaml .github/workflows/ci.yml README.md apps/admin-web/README.md apps/content-engine/README.md apps/mobile/README.md services/core-api/README.md",
+    "format:root:check": "prettier --check package.json services/core-api/package.json apps/mobile/pubspec.yaml compose.yaml .github/workflows/ci.yml README.md apps/admin-web/README.md apps/content-engine/README.md apps/mobile/README.md services/core-api/README.md",
+    "format:api": "npm --workspace @prolific/core-api run format",
+    "format:api:check": "npm --workspace @prolific/core-api run format:check",
+    "format:mobile": "dart format apps/mobile/lib apps/mobile/test",
+    "format:mobile:check": "dart format --output=none --set-exit-if-changed apps/mobile/lib apps/mobile/test",
+    "lint": "npm run lint:api && npm run analyze:mobile",
+    "lint:api": "npm --workspace @prolific/core-api run lint",
+    "analyze:mobile": "cd apps/mobile && flutter analyze",
+    "test": "npm run test:api && npm run test:api:e2e && npm run test:mobile",
+    "test:api": "npm --workspace @prolific/core-api run test -- --runInBand",
+    "test:api:e2e": "npm --workspace @prolific/core-api run test:e2e -- --runInBand",
+    "test:mobile": "cd apps/mobile && flutter test",
+    "build:api": "npm --workspace @prolific/core-api run build",
+    "ci": "npm run format:check && npm run lint && npm test && npm run build:api"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}
