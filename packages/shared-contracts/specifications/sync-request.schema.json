@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prolific.example/schemas/sync-request.schema.json",
+  "title": "Prolific Sync Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["deviceId", "clientRequestId", "clientTimestamp", "localSchemaVersion", "events"],
+  "properties": {
+    "deviceId": { "$ref": "#/$defs/uuid" },
+    "clientRequestId": { "$ref": "#/$defs/uuid" },
+    "previousSyncCursor": { "type": ["string", "null"], "minLength": 1, "maxLength": 2048 },
+    "clientTimestamp": { "$ref": "#/$defs/utcTimestamp" },
+    "localSchemaVersion": { "type": "integer", "minimum": 1 },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/syncEvent" }
+    }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "utcTimestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "syncEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "eventSchemaVersion",
+        "eventType",
+        "entityId",
+        "eventTimestamp",
+        "sessionId",
+        "sequence",
+        "lessonRevisionId",
+        "payload"
+      ],
+      "properties": {
+        "eventId": { "$ref": "#/$defs/uuid" },
+        "eventSchemaVersion": { "type": "integer", "minimum": 1 },
+        "eventType": {
+          "type": "string",
+          "enum": [
+            "tutorial_started",
+            "tutorial_progressed",
+            "tutorial_completed",
+            "practice_started",
+            "practice_progressed",
+            "practice_completed"
+          ]
+        },
+        "entityId": { "$ref": "#/$defs/uuid" },
+        "eventTimestamp": { "$ref": "#/$defs/utcTimestamp" },
+        "sessionId": { "$ref": "#/$defs/uuid" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "lessonId": { "$ref": "#/$defs/uuid" },
+        "lessonVariantId": { "$ref": "#/$defs/uuid" },
+        "lessonRevisionId": { "$ref": "#/$defs/uuid" },
+        "revisionNumber": { "type": "integer", "minimum": 1 },
+        "retryCount": { "type": "integer", "minimum": 0 },
+        "payload": { "$ref": "#/$defs/readingPayload" }
+      }
+    },
+    "readingPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "pacePreset",
+        "wordsPerMinute",
+        "positionIndex",
+        "elapsedMilliseconds",
+        "completed"
+      ],
+      "properties": {
+        "mode": { "type": "string", "enum": ["tutorial", "practice"] },
+        "pacePreset": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "wordsPerMinute": { "type": "integer", "minimum": 1 },
+        "positionIndex": { "type": "integer", "minimum": 0 },
+        "elapsedMilliseconds": { "type": "integer", "minimum": 0 },
+        "completed": { "type": "boolean" }
+      }
+    }
+  },
+  "examples": [
+    {
+      "deviceId": "bd9678f3-6c04-4cc5-b3bd-20eb1f86ac2d",
+      "clientRequestId": "c0fd523b-1b5e-4f93-bd3d-71bc9af0101d",
+      "previousSyncCursor": null,
+      "clientTimestamp": "2026-07-15T09:15:30.000Z",
+      "localSchemaVersion": 1,
+      "events": [
+        {
+          "eventId": "8d8ecce8-c932-4512-a2d0-840a2b40c8ee",
+          "eventSchemaVersion": 1,
+          "eventType": "practice_completed",
+          "entityId": "82db7834-b45a-49eb-86b8-ef34f3a8bb81",
+          "eventTimestamp": "2026-07-15T09:15:00.000Z",
+          "sessionId": "82db7834-b45a-49eb-86b8-ef34f3a8bb81",
+          "sequence": 4,
+          "lessonId": "4bf2f788-62d7-4a7f-bf24-bdc1079d7d13",
+          "lessonVariantId": "76b6bdcc-fc2b-4332-b4bc-a12d32621f30",
+          "lessonRevisionId": "0b82b6ca-e4bd-4218-a728-86a0696d9957",
+          "revisionNumber": 3,
+          "retryCount": 0,
+          "payload": {
+            "mode": "practice",
+            "pacePreset": "medium",
+            "wordsPerMinute": 150,
+            "positionIndex": 319,
+            "elapsedMilliseconds": 162500,
+            "completed": true
+          }
+        }
+      ]
+    }
+  ]
+}

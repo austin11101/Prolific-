@@ -62,9 +62,9 @@ Do not change a technology decision without updating the relevant architecture d
 * South African first.
 * Every lesson must teach meaningful knowledge.
 * The tutorial voice plays once by default.
-* Practice mode must be silent.
+* Practice mode must contain no application audio; the learner may still read aloud independently.
 * The reading player must work without internet after a lesson is downloaded.
-* Only approved lessons may be visible to learners.
+* Only published lessons that have passed approval may be visible to learners.
 * Content produced by the scripting engine enters the main platform as a draft.
 * The content engine must not publish directly.
 * AI-generated content will not be required for the MVP.
@@ -117,6 +117,7 @@ The reading player must support:
 
 * Tutorial mode.
 * Silent practice mode.
+* Learner-initiated tutorial replay that remains separate from practice and completion.
 * Play, pause, restart, and exit.
 * Easy, medium, and hard pace presets.
 * Internal words-per-minute values.

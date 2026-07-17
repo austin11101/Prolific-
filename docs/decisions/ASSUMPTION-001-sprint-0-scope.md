@@ -8,14 +8,14 @@
 
 For this task only, the user's explicit Sprint 0 request is the authoritative scope. Sprint 0 is limited to:
 
-* establishing the monorepo directory structure;
-* scaffolding the Flutter mobile application;
-* scaffolding the NestJS core API;
-* creating placeholder administration and content-engine directories with READMEs;
-* configuring local PostgreSQL through Docker Compose;
-* adding root environment examples and development commands;
-* adding formatting and linting configuration; and
-* adding continuous integration for static analysis and tests.
+- establishing the monorepo directory structure;
+- scaffolding the Flutter mobile application;
+- scaffolding the NestJS core API;
+- creating placeholder administration and content-engine directories with READMEs;
+- configuring local PostgreSQL through Docker Compose;
+- adding root environment examples and development commands;
+- adding formatting and linting configuration; and
+- adding continuous integration for static analysis and tests.
 
 No product features, authentication implementation, database entities, lesson APIs, or reading-player behaviour are authorized by this assumption.
 

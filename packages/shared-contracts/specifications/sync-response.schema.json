@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prolific.example/schemas/sync-response.schema.json",
+  "title": "Prolific Sync Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "serverTimestamp",
+    "nextCursor",
+    "acceptedEvents",
+    "duplicateEvents",
+    "rejectedEvents",
+    "retryableEvents",
+    "updatedProgressSummary",
+    "accountState",
+    "deviceState"
+  ],
+  "properties": {
+    "serverTimestamp": { "$ref": "#/$defs/utcTimestamp" },
+    "nextCursor": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "acceptedEvents": { "type": "array", "items": { "$ref": "#/$defs/successOutcome" } },
+    "duplicateEvents": { "type": "array", "items": { "$ref": "#/$defs/successOutcome" } },
+    "rejectedEvents": { "type": "array", "items": { "$ref": "#/$defs/failureOutcome" } },
+    "retryableEvents": { "type": "array", "items": { "$ref": "#/$defs/retryableOutcome" } },
+    "updatedProgressSummary": { "$ref": "#/$defs/progressSummary" },
+    "accountState": { "type": "string", "enum": ["active", "deactivated", "deleted"] },
+    "deviceState": { "type": "string", "enum": ["active", "deactivated", "detached"] }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "utcTimestamp": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "successOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId", "acknowledgedAt"],
+      "properties": {
+        "eventId": { "$ref": "#/$defs/uuid" },
+        "acknowledgedAt": { "$ref": "#/$defs/utcTimestamp" },
+        "sessionRecordId": { "$ref": "#/$defs/uuid" }
+      }
+    },
+    "failureOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId", "errorCode", "message", "retryable"],
+      "properties": {
+        "eventId": { "$ref": "#/$defs/uuid" },
+        "errorCode": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 120 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "retryable": { "const": false },
+        "conflictMetadata": { "$ref": "#/$defs/conflictMetadata" }
+      }
+    },
+    "retryableOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId", "errorCode", "message", "retryable"],
+      "properties": {
+        "eventId": { "$ref": "#/$defs/uuid" },
+        "errorCode": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 120 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "retryable": { "const": true },
+        "retryAfterSeconds": { "type": "integer", "minimum": 0 },
+        "conflictMetadata": { "$ref": "#/$defs/conflictMetadata" }
+      }
+    },
+    "conflictMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expectedVersion": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+        "currentVersion": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+        "resolution": { "type": "string", "maxLength": 240 }
+      }
+    },
+    "progressSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completedLessonCount", "totalPracticeMilliseconds", "lastUpdatedAt"],
+      "properties": {
+        "completedLessonCount": { "type": "integer", "minimum": 0 },
+        "totalPracticeMilliseconds": { "type": "integer", "minimum": 0 },
+        "currentStreakDays": { "type": "integer", "minimum": 0 },
+        "lastUpdatedAt": { "$ref": "#/$defs/utcTimestamp" }
+      }
+    }
+  },
+  "examples": [
+    {
+      "serverTimestamp": "2026-07-15T09:16:02.000Z",
+      "nextCursor": "opaque-cursor-example",
+      "acceptedEvents": [
+        {
+          "eventId": "8d8ecce8-c932-4512-a2d0-840a2b40c8ee",
+          "acknowledgedAt": "2026-07-15T09:16:02.000Z",
+          "sessionRecordId": "6d35df55-1daf-4071-a599-998ca6560801"
+        }
+      ],
+      "duplicateEvents": [],
+      "rejectedEvents": [],
+      "retryableEvents": [],
+      "updatedProgressSummary": {
+        "completedLessonCount": 4,
+        "totalPracticeMilliseconds": 650000,
+        "currentStreakDays": 2,
+        "lastUpdatedAt": "2026-07-15T09:16:02.000Z"
+      },
+      "accountState": "active",
+      "deviceState": "active"
+    }
+  ]
+}

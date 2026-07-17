@@ -2,7 +2,7 @@
 
 Prolific is a South African knowledge and reading fluency platform designed to help users improve their reading pace, confidence, and comprehension through guided reading lessons.
 
-The app focuses on South African users and supports English and South African languages. Users learn through structured topics such as animals, psychology, speeches, facts, history, technology, health, and South African knowledge.
+The app focuses on South African users. The MVP launches with English, isiZulu, and Sepedi; lesson availability may differ by language. Users learn through structured topics such as animals, psychology, speeches, facts, history, technology, health, and South African knowledge.
 
 ## Core Idea
 
@@ -12,12 +12,12 @@ The main reading experience works like lyric-style reading:
 
 1. The user selects a topic and difficulty.
 2. A paragraph appears.
-3. The AI/tutorial voice reads once.
-4. Words are highlighted at the selected pace.
-5. The voice stops.
-6. The user practises silently or aloud.
-7. Progress is saved.
-8. Offline progress syncs when internet returns.
+3. The tutorial voice reads while words or phrases are highlighted and may be replayed.
+4. The application then becomes silent for independent practice at easy (100 WPM), medium (150 WPM), or hard (200 WPM).
+5. The learner may read silently or aloud.
+6. A registered learner's progress is saved locally and synchronizes when internet access returns.
+
+Guests can browse active categories/topics and try a limited selection of published free lessons. Creating an optional free account unlocks the complete eligible library, downloads, durable progress, synchronization, history, and daily streaks.
 
 ## Platform Components
 
@@ -34,21 +34,41 @@ The MVP should allow users to:
 
 - Select a language
 - Browse topics and lessons
-- Download lessons
-- Play tutorial audio once
+- Try a limited free lesson without registration
+- Create an optional free account for the complete eligible library
+- Download lessons with a free account
+- Play and replay tutorial audio
 - Practise reading with moving/highlighted words
-- Track progress
+- Track basic progress and daily streaks with a free account
 - Use downloaded lessons offline
 - Sync progress when online
 
 ## Long-Term Vision
 
 Prolific will become a South African digital knowledge library that helps users read, learn, and grow in English and South African languages.
-# Prolific Platform
+
+## Repository and Development
 
 Monorepo for the Prolific mobile application, administration dashboard, content engine, core API, shared contracts, and supporting infrastructure.
 
-Sprint 0 establishes tooling and executable scaffolds only. Product features, authentication, database entities, lesson APIs, and reading-player behaviour are not implemented.
+Sprint 0 established the tooling and executable scaffolds. Sprint 1 completed the reviewed product, domain, mobile, backend, database, offline/sync, contract, testing, and deployment architecture baseline. Architecture Gate 001 records final `PASS`; the Product Owner human-verified AG-001 through AG-006. The Sprint 1 Closure Review records `PASS WITH CONDITIONS`: Sprint 2 is architecture-ready but not started, and Docker/PostgreSQL plus the no-OneDrive process check must be re-verified at entry. Product features, authentication, database entities, migrations, lesson APIs, and reading-player behaviour are not implemented yet.
+
+## Project Status
+
+- Planning: complete at the product-scope level; detailed decisions continue through the roadmap.
+- Environment: complete and verified outside OneDrive.
+- Sprint 0: complete.
+- Sprint 1: documentation/architecture complete (`PASS WITH CONDITIONS` due Docker runtime re-verification).
+- Persistence architecture: [ADR-012](docs/decisions/ADR-012-use-prisma-for-core-api-persistence.md) approves Prisma ORM, Prisma Migrate, Core API migration ownership, explicit repository interfaces, and application-service transaction ownership; no implementation has started.
+- Content architecture: [ADR-013](docs/decisions/ADR-013-use-lesson-variants-and-immutable-revisions.md) approves stable Lessons, Language/Difficulty Lesson Variants, immutable published Lesson Revisions, Variant-scoped numbering, one Working Draft, and optimistic concurrency.
+- Package architecture: [ADR-014](docs/decisions/ADR-014-use-structured-content-blocks-and-revision-packages.md) approves structured Content Blocks, Revision-scoped Reading Positions, versioned profiles, SHA-256 integrity, and the immutable learner package boundary.
+- Editorial architecture: [ADR-015](docs/decisions/ADR-015-persist-editorial-workflow-and-admin-actor-audit.md) approves distinct Administrative/Service Actors, immutable review/publication evidence, separation of duties, and append-only visibility history.
+- Taxonomy architecture: [ADR-016](docs/decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md) approves Category-scoped hierarchical Topics, naming, cycle prevention, reparenting, lifecycle, Effective Visibility, audit, and historical integrity.
+- Privacy architecture: [ADR-017](docs/decisions/ADR-017-use-history-safe-deletion-and-anonymization.md) approves history-safe deletion/anonymization, identity/activity separation, retention extension points, non-destructive references, backup/sync boundaries, and minimal privacy audit evidence.
+- Architecture gate: [Architecture Gate 001](docs/reviews/ARCHITECTURE-GATE-001.md) records final `PASS`; AG-001 through AG-006 are `Satisfied — Human verified` by the Product Owner.
+- Sprint 2 entry: [Sprint 2 Entry Checklist](docs/reviews/SPRINT-2-ENTRY-CHECKLIST.md) defines governance, Docker/PostgreSQL and no-OneDrive process re-verification, before-first-migration decisions, implementation order, and non-negotiable controls. Sprint 2 remains unstarted; database implementation is permitted only after its formal start and completion of applicable prerequisites.
+- Sprint 1 closure: [Sprint 1 Closure Review](docs/reviews/SPRINT-1-CLOSURE-REVIEW.md) records the completed deliverables, technical validation, and remaining later-sprint decisions.
+- Current implementation guide: [Prolific Platform Master Roadmap](docs/14-roadmap/master-roadmap.md).
 
 ## Repository Structure
 
@@ -60,7 +80,7 @@ apps/
 services/
   core-api/           NestJS API scaffold
 packages/
-  shared-contracts/   Reserved shared contracts workspace
+  shared-contracts/   Language-neutral JSON Schema specifications
 infrastructure/       Infrastructure documentation and future definitions
 scripts/              Repository automation scripts
 docs/                 Product and architecture documentation
@@ -100,4 +120,4 @@ Never commit `.env` or any file containing real credentials.
 
 ## Documentation
 
-Start with [the documentation index](docs/README.md). Repository-wide agent guidance is in [AGENTS.md](AGENTS.md).
+Start with the [Prolific Platform Master Roadmap](docs/14-roadmap/master-roadmap.md), then review the [Canonical Domain Model](docs/architecture/canonical-domain-model.md), [Core Backend Architecture](docs/06-core-backend/backend-architecture.md), and [Database Overview](docs/07-database/database-overview.md). Use the [documentation index](docs/README.md) for detailed requirements and architecture. Repository-wide agent guidance is in [AGENTS.md](AGENTS.md).

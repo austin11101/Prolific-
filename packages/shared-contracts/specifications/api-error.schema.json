@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prolific.example/schemas/api-error.schema.json",
+  "title": "Prolific API Error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "correlationId", "retryable", "timestamp"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 120 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "correlationId": { "type": "string", "format": "uuid" },
+        "validationDetails": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/validationDetail" }
+        },
+        "retryable": { "type": "boolean" },
+        "conflictMetadata": { "$ref": "#/$defs/conflictMetadata" },
+        "timestamp": { "type": "string", "format": "date-time", "pattern": "Z$" }
+      }
+    }
+  },
+  "$defs": {
+    "validationDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "code", "message"],
+      "properties": {
+        "field": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "maxLength": 120 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    },
+    "conflictMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resourceType": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "resourceId": { "type": "string", "format": "uuid" },
+        "expectedVersion": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+        "currentVersion": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+        "resolution": { "type": "string", "maxLength": 240 }
+      }
+    }
+  },
+  "examples": [
+    {
+      "error": {
+        "code": "validation_failed",
+        "message": "The request could not be processed.",
+        "correlationId": "9715aa3e-aed3-4da8-bf4a-50e939a68d8d",
+        "validationDetails": [
+          {
+            "field": "events[0].eventId",
+            "code": "invalid_uuid",
+            "message": "Must be a valid UUID."
+          }
+        ],
+        "retryable": false,
+        "timestamp": "2026-07-15T09:16:02.000Z"
+      }
+    }
+  ]
+}

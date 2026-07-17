@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prolific.example/schemas/lesson-package.schema.json",
+  "title": "Prolific Offline Lesson Package",
+  "description": "Canonical learner package for exactly one immutable published Lesson Revision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "packageSchemaVersion",
+    "lessonId",
+    "lessonVariantId",
+    "lessonRevisionId",
+    "revisionNumber",
+    "language",
+    "difficulty",
+    "title",
+    "contentBlocks",
+    "readingUnits",
+    "readingPositions",
+    "tokenizationProfile",
+    "alignmentProfile",
+    "wordCount",
+    "estimatedReadingSeconds",
+    "pacePresets",
+    "tutorialAudio",
+    "alignmentEntries",
+    "attribution",
+    "packageChecksum",
+    "assetChecksums",
+    "publishedAt",
+    "compatibility"
+  ],
+  "properties": {
+    "packageSchemaVersion": { "type": "integer", "minimum": 1 },
+    "lessonId": { "$ref": "#/$defs/uuid" },
+    "lessonVariantId": { "$ref": "#/$defs/uuid" },
+    "lessonRevisionId": { "$ref": "#/$defs/uuid" },
+    "revisionNumber": { "type": "integer", "minimum": 1 },
+    "language": { "type": "string", "enum": ["en-ZA", "zu-ZA", "nso-ZA"] },
+    "difficulty": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+    "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "contentBlocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/contentBlock" }
+    },
+    "readingUnits": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/readingUnit" }
+    },
+    "readingPositions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/readingPosition" }
+    },
+    "tokenizationProfile": { "$ref": "#/$defs/versionedProfile" },
+    "alignmentProfile": { "$ref": "#/$defs/versionedProfile" },
+    "wordCount": { "type": "integer", "minimum": 1 },
+    "estimatedReadingSeconds": { "type": "integer", "minimum": 1 },
+    "pacePresets": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/easyPace" },
+        { "$ref": "#/$defs/mediumPace" },
+        { "$ref": "#/$defs/hardPace" }
+      ],
+      "items": false
+    },
+    "tutorialAudio": { "$ref": "#/$defs/tutorialAudio" },
+    "alignmentEntries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/alignmentEntry" }
+    },
+    "attribution": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/attributionEntry" }
+    },
+    "packageChecksum": { "$ref": "#/$defs/checksum" },
+    "assetChecksums": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/assetChecksum" }
+    },
+    "publishedAt": { "$ref": "#/$defs/utcTimestamp" },
+    "generatedAt": { "$ref": "#/$defs/utcTimestamp" },
+    "compatibility": { "$ref": "#/$defs/compatibility" }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "format": "uuid" },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "versionedProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "contentBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "order", "readable", "canonicalDisplayText"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "type": { "type": "string", "enum": ["heading", "paragraph", "callout", "fact", "quote"] },
+        "order": { "type": "integer", "minimum": 0 },
+        "readable": { "type": "boolean" },
+        "canonicalDisplayText": { "type": "string", "minLength": 1 }
+      }
+    },
+    "displaySpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "integer", "minimum": 0 },
+        "end": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "readingUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "contentBlockId",
+        "displaySpan",
+        "surfaceText",
+        "normalizedComparisonText",
+        "wordCountEligible"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "contentBlockId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "displaySpan": { "$ref": "#/$defs/displaySpan" },
+        "surfaceText": { "type": "string", "minLength": 1 },
+        "normalizedComparisonText": { "type": "string" },
+        "wordCountEligible": { "type": "boolean" }
+      }
+    },
+    "readingPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "contentBlockId",
+        "readingUnitId",
+        "displaySpan",
+        "surfaceText",
+        "normalizedComparisonText",
+        "readable"
+      ],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "contentBlockId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "readingUnitId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "displaySpan": { "$ref": "#/$defs/displaySpan" },
+        "surfaceText": { "type": "string", "minLength": 1 },
+        "normalizedComparisonText": { "type": "string" },
+        "readable": { "const": true }
+      }
+    },
+    "pace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "wordsPerMinute"],
+      "properties": {
+        "name": { "type": "string" },
+        "wordsPerMinute": { "type": "integer" }
+      }
+    },
+    "easyPace": {
+      "allOf": [
+        { "$ref": "#/$defs/pace" },
+        {
+          "type": "object",
+          "properties": { "name": { "const": "easy" }, "wordsPerMinute": { "const": 100 } }
+        }
+      ]
+    },
+    "mediumPace": {
+      "allOf": [
+        { "$ref": "#/$defs/pace" },
+        {
+          "type": "object",
+          "properties": { "name": { "const": "medium" }, "wordsPerMinute": { "const": 150 } }
+        }
+      ]
+    },
+    "hardPace": {
+      "allOf": [
+        { "$ref": "#/$defs/pace" },
+        {
+          "type": "object",
+          "properties": { "name": { "const": "hard" }, "wordsPerMinute": { "const": 200 } }
+        }
+      ]
+    },
+    "tutorialAudio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetId",
+        "relativePath",
+        "mediaType",
+        "durationMilliseconds",
+        "byteLength",
+        "checksum"
+      ],
+      "properties": {
+        "assetId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "relativePath": { "type": "string", "pattern": "^(?![A-Za-z]:|/|.*\\.\\.).+$" },
+        "mediaType": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "durationMilliseconds": { "type": "integer", "minimum": 1 },
+        "byteLength": { "type": "integer", "minimum": 1 },
+        "checksum": { "$ref": "#/$defs/checksum" }
+      }
+    },
+    "alignmentEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startMilliseconds",
+        "endMilliseconds",
+        "startPositionIndex",
+        "endPositionIndex"
+      ],
+      "properties": {
+        "startMilliseconds": { "type": "integer", "minimum": 0 },
+        "endMilliseconds": { "type": "integer", "minimum": 1 },
+        "startPositionIndex": { "type": "integer", "minimum": 0 },
+        "endPositionIndex": { "type": "integer", "minimum": 0 },
+        "reviewStatus": { "type": "string", "enum": ["unreviewed", "reviewed"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "attributionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceName", "attributionText"],
+      "properties": {
+        "sourceName": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "licence": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "attributionText": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assetChecksum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "relativePath", "checksum"],
+      "properties": {
+        "assetId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "relativePath": { "type": "string", "pattern": "^(?![A-Za-z]:|/|.*\\.\\.).+$" },
+        "checksum": { "$ref": "#/$defs/checksum" }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumReaderSchemaVersion", "requiredBlockTypes"],
+      "properties": {
+        "minimumReaderSchemaVersion": { "type": "integer", "minimum": 1 },
+        "requiredBlockTypes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["heading", "paragraph", "callout", "fact", "quote"]
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "packageSchemaVersion": 1,
+      "lessonId": "4bf2f788-62d7-4a7f-bf24-bdc1079d7d13",
+      "lessonVariantId": "76b6bdcc-fc2b-4332-b4bc-a12d32621f30",
+      "lessonRevisionId": "0b82b6ca-e4bd-4218-a728-86a0696d9957",
+      "revisionNumber": 3,
+      "language": "en-ZA",
+      "difficulty": "beginner",
+      "title": "The pangolin",
+      "contentBlocks": [
+        {
+          "id": "b1",
+          "type": "paragraph",
+          "order": 0,
+          "readable": true,
+          "canonicalDisplayText": "Pangolins are mammals."
+        }
+      ],
+      "readingUnits": [
+        {
+          "id": "u1",
+          "contentBlockId": "b1",
+          "displaySpan": { "start": 0, "end": 9 },
+          "surfaceText": "Pangolins",
+          "normalizedComparisonText": "pangolins",
+          "wordCountEligible": true
+        }
+      ],
+      "readingPositions": [
+        {
+          "index": 0,
+          "contentBlockId": "b1",
+          "readingUnitId": "u1",
+          "displaySpan": { "start": 0, "end": 9 },
+          "surfaceText": "Pangolins",
+          "normalizedComparisonText": "pangolins",
+          "readable": true
+        }
+      ],
+      "tokenizationProfile": { "name": "prolific-word-en-za", "version": 1 },
+      "alignmentProfile": { "name": "prolific-position-timeline", "version": 1 },
+      "wordCount": 3,
+      "estimatedReadingSeconds": 2,
+      "pacePresets": [
+        { "name": "easy", "wordsPerMinute": 100 },
+        { "name": "medium", "wordsPerMinute": 150 },
+        { "name": "hard", "wordsPerMinute": 200 }
+      ],
+      "tutorialAudio": {
+        "assetId": "tutorial-audio",
+        "relativePath": "assets/tutorial.mp3",
+        "mediaType": "audio/mpeg",
+        "durationMilliseconds": 1800,
+        "byteLength": 32000,
+        "checksum": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "alignmentEntries": [
+        {
+          "startMilliseconds": 0,
+          "endMilliseconds": 700,
+          "startPositionIndex": 0,
+          "endPositionIndex": 0,
+          "reviewStatus": "reviewed",
+          "confidence": 1
+        }
+      ],
+      "attribution": [
+        {
+          "sourceName": "Example source",
+          "sourceUrl": "https://example.org/pangolin",
+          "licence": "Example licence",
+          "attributionText": "Adapted for demonstration."
+        }
+      ],
+      "packageChecksum": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "assetChecksums": [
+        {
+          "assetId": "tutorial-audio",
+          "relativePath": "assets/tutorial.mp3",
+          "checksum": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "publishedAt": "2026-07-15T08:00:00.000Z",
+      "generatedAt": "2026-07-15T08:05:00.000Z",
+      "compatibility": { "minimumReaderSchemaVersion": 1, "requiredBlockTypes": ["paragraph"] }
+    }
+  ]
+}
