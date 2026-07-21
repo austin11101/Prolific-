@@ -1,0 +1,1 @@
+export const TOPIC_QUERY_SERVICE = Symbol('TOPIC_QUERY_SERVICE');

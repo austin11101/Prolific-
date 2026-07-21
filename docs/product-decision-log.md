@@ -171,6 +171,84 @@ The [Product Requirements Document](./01-product-vision/product-requirements-doc
 - **Related PRD sections:** [6.5 Security and privacy](./01-product-vision/product-requirements-document.md#65-security-and-privacy), [6.7 Observability](./01-product-vision/product-requirements-document.md#67-observability), [8. Success metrics](./01-product-vision/product-requirements-document.md#8-success-metrics)
 - **Related ADRs:** [ADR-011](./decisions/ADR-011-mvp-product-access-and-reading-rules.md), [ADR-017](./decisions/ADR-017-use-history-safe-deletion-and-anonymization.md)
 
+## Approved first-migration governance decisions
+
+These FPSD records define approved product/governance constraints for the first physical schema. The detailed evidence history remains in the [First Physical Schema Decision Register](./reviews/FIRST-PHYSICAL-SCHEMA-OPEN-DECISIONS.md).
+
+### FPSD-009: Launch content-language identities
+
+- **Status:** Approved.
+- **Date:** 2026-07-17.
+- **Approving authority:** Product Owner / architecture governance decision supplied in the review process.
+- **Decision:** The three launch content-language records are English (`en-ZA`, ISO basis `eng`, order 1), isiZulu (`zu-ZA`, ISO basis `zul`, order 2), and Sepedi (`nso-ZA`, ISO basis `nso`, order 3). Canonical labels and tags are independently stored. Migration one does not infer or enable interface-language support.
+- **Consequences:** The production reference-data proposal contains exactly these three active content languages. Interface localization remains a separate decision.
+- **Implementation conditions:** Enforce exact tag and ISO-basis relationships, deterministic ordering, immutable Language identity, and the explicit absence of an interface-language flag in migration one.
+- **Evidence:** [Seed proposal](./07-database/first-seed-data-proposal.md), [schema decision brief](./reviews/FIRST-PHYSICAL-SCHEMA-DECISION-BRIEF.md), and the supplied Sprint 2.6 decision package.
+
+### FPSD-010: Governance-owned Language UUIDs
+
+- **Status:** Approved.
+- **Date:** 2026-07-17.
+- **Approving authority:** Product Owner / architecture governance decision supplied in the review process.
+- **Decision:** Prolific platform governance owns these immutable UUIDv4 reference identities: English `b59a72c2-bb1d-43e2-b0ab-b3d7fdd08890`; isiZulu `70776e42-a5fa-4c85-8c00-ba1cac8dcbac`; Sepedi `0bee1a85-35bf-4096-ac2a-b6ac12c58382`.
+- **Consequences:** Every environment and future approved seed must use the same values.
+- **Implementation conditions:** Never regenerate the values per environment, never reassign a retired UUID, and never replace a UUID after reference.
+- **Evidence:** [Seed proposal](./07-database/first-seed-data-proposal.md), [decision register](./reviews/FIRST-PHYSICAL-SCHEMA-OPEN-DECISIONS.md), and the supplied Sprint 2.6 decision package.
+
+### FPSD-013: Taxonomy lifecycle
+
+- **Status:** Approved.
+- **Date:** 2026-07-17.
+- **Approving authority:** Product Owner / architecture governance decision supplied in the review process.
+- **Decision:** Category and Topic have exactly two conceptual lifecycle values: `ACTIVE` and `ARCHIVED`. There is no `DELETED` state; withdrawal is not a taxonomy state. Archive is reversible.
+- **Consequences:** Archived ancestry affects Effective Visibility without rewriting descendants. Restoration must revalidate uniqueness, parent validity, Category consistency, and Effective Visibility.
+- **Implementation conditions:** Default new Category/Topic state to `ACTIVE`, record archive time, apply optimistic concurrency, and do not add an actor-principal lifecycle enum or unused actor lifecycle field.
+- **Evidence:** [Physical schema proposal](./07-database/first-physical-schema-proposal.md), [ADR-016](./decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md), and the supplied Sprint 2.6 decision package.
+
+### FPSD-014: Database privilege separation
+
+- **Status:** Approved.
+- **Date:** 2026-07-17.
+- **Approving authority:** Product Owner / architecture governance decision supplied in the review process.
+- **Decision:** Separate a controlled migration role, least-privilege application role, optional explicitly scoped read-only operational role, and reserved database owner/admin role. NestJS never uses migration, owner, admin, or superuser credentials.
+- **Consequences:** Migration and runtime secrets are separate; taxonomy writes remain behind the approved repository/application-service boundary.
+- **Implementation conditions:** Supply secrets through deployment secret management, prohibit schema/role/extension administration from the application role, deny restricted audit access by default to operational readers, and prove production parity with privilege tests before deployment.
+- **Evidence:** [Database Privilege Model](./07-database/database-privilege-model.md), [ADR-012](./decisions/ADR-012-use-prisma-for-core-api-persistence.md), and the supplied Sprint 2.6 decision package.
+
+## Approved multidisciplinary schema amendments
+
+The following supplied human decisions approve proposal amendments only. They do not constitute any of the five final physical-schema reviewer approvals and do not authorize Prisma models, migrations, SQL, roles, privileges, seeds, or database objects.
+
+| Supplied decision              | Approved product/governance effect                                                                                                                                                            | Evidence                                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| MDR-BE-001                     | Permit one narrowly scoped, parameterized Category-row locking primitive inside the taxonomy persistence adapter and Prisma interactive transaction; unrestricted raw SQL remains prohibited. | [Physical proposal raw-query policy](./07-database/first-physical-schema-proposal.md#taxonomy-raw-query-locking-exception) |
+| MDR-DD-001                     | Audit rows populate exactly one nullable Category/Topic target FK and derive target type; no `target_type` field.                                                                             | [Audit definition](./07-database/first-physical-schema-proposal.md#taxonomy_change_records)                                |
+| MDR-DD-002                     | Language stores separate canonical and normalized names; normalized name and BCP 47 tag are independently unique while UUID remains immutable identity.                                       | [Language proposal](./07-database/first-physical-schema-proposal.md#languages)                                             |
+| MDR-DD-003                     | Previous/resulting audit parent FKs receive separate supporting indexes.                                                                                                                      | [Index catalogue](./07-database/first-physical-schema-proposal.md#index-catalogue)                                         |
+| MDR-DD-004                     | Normalized equality/uniqueness fields use explicit PostgreSQL `"C"` collation in the future reviewed migration.                                                                               | [Normalization Decision](./07-database/taxonomy-normalization-decision.md#storage-and-uniqueness-scope)                    |
+| MDR-BE-002                     | Migration-one Language data is governance-owned and immutable through normal runtime paths; controlled changes preserve UUIDs through reviewed seed/migration amendments.                     | [Seed proposal](./07-database/first-seed-data-proposal.md#upsert-and-immutability-behavior)                                |
+| MDR-SP-001 and MDR-SP-002      | Taxonomy audit is restricted operational audit data with deny-by-default access and interim preservation without automated expiry/deletion pending a final retention policy.                  | [Privilege model](./07-database/database-privilege-model.md)                                                               |
+| Supplied reason-code amendment | Use an application-owned bounded reason-code registry; no arbitrary narrative/user input or PostgreSQL enum.                                                                                  | [Audit definition](./07-database/first-physical-schema-proposal.md#taxonomy_change_records)                                |
+| Supplied correction amendment  | Corrections append a restrictive nullable self-reference, preserve the original, and require same-target/acyclic repository validation.                                                       | [Audit definition](./07-database/first-physical-schema-proposal.md#taxonomy_change_records)                                |
+| MDR-PG-001                     | Exclude tutorial-audio, voice, text-to-speech, interface-language, and broader availability capability fields from migration-one Language schema/seed.                                        | [Seed exclusions](./07-database/first-seed-data-proposal.md#explicit-exclusions)                                           |
+| MDR-BE-003                     | One shared backend domain/application component owns seed and taxonomy normalization/validation.                                                                                              | [Validation ownership](./07-database/taxonomy-normalization-decision.md#validation-ownership)                              |
+| MDR-SA-001                     | Actor principals are provisioned idempotently through a controlled backend service/repository, contain no identity payload, and are linked later only through separate mappings.              | [Canonical Domain Model](./architecture/canonical-domain-model.md#identity-and-access-model)                               |
+| MDR-XD-002                     | Every taxonomy change record has at most one direct successor; corrections form a deterministic linear chain rather than a branching graph.                                                   | [Correction-chain proposal](./07-database/first-physical-schema-proposal.md#taxonomy_change_records)                       |
+
+The supplied Sprint 2.8 packet used labels `MDR-SP-003` for the reason-code policy and `MDR-SP-004` for correction behavior, while those stable Sprint 2.7 finding IDs already identify command-ID privacy and pseudonymous-actor observations. The stable finding register is not rewritten: the supplied policies are mapped by substance to MDR-SP-002 and MDR-XD-001, and command-ID privacy remains resolved through the explicit opaque UUIDv4/access/logging rules. Sprint 2.9 resolves MDR-XD-002 separately.
+
+### MDR-XD-002: One direct successor per taxonomy change record
+
+- **Status:** Approved.
+- **Date:** 2026-07-17.
+- **Approving authority:** Product Owner / architecture governance decision supplied through the review process.
+- **Decision:** A taxonomy change record may be directly superseded at most once. Corrections form a deterministic linear chain: each record references zero or one predecessor and has zero or one direct successor. Sequential corrections may extend the chain; branching is prohibited.
+- **Rationale:** A single successor prevents ambiguous competing correction histories and makes the terminal correction deterministic for governance, audit, and support interpretation.
+- **Alternatives considered:** Permit branching corrections and require readers to choose a winner; prohibit correction chaining after one correction; update the original audit row. These alternatives create ambiguity, unnecessarily restrict legitimate later corrections, or violate append-only evidence.
+- **Consequences:** `supersedes_change_record_id` remains nullable and immutable, receives a nullable unique constraint plus restrictive self-FK, and supports forward/backward linear traversal. Originals remain unchanged. One concurrent correction succeeds; a competing or stale direct-successor attempt returns a stable conflict.
+- **Implementation conditions:** PostgreSQL enforces the FK, unique non-null predecessor use, and self-reference check. The repository transaction validates an earlier terminal predecessor, same effective target, acyclicity, atomic insertion, and stable concurrency/error behavior. No recursive trigger, stored procedure, or additional raw-query exception is approved.
+- **Evidence:** [First Physical Schema Proposal](./07-database/first-physical-schema-proposal.md#taxonomy_change_records), [Multidisciplinary Review amendment verification](./reviews/FIRST-PHYSICAL-SCHEMA-MULTIDISCIPLINARY-REVIEW.md#sprint-29-final-amendment-verification), and the supplied Sprint 2.9 decision package.
+
 ## Decision governance
 
 ### Approval authority

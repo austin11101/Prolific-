@@ -6,14 +6,15 @@ Architecture baseline for [ADR-017](../decisions/ADR-017-use-history-safe-deleti
 
 ## Data classes and controls
 
-| Class                 | Core controls                                                                                          | Policy still required                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| Public content        | Immutable published history, archive/withdrawal, restricted editorial mutation                         | Content-rights and final retention policy     |
-| Learner identity      | Strong access control, deactivation, credential revocation, identifier minimization/anonymization      | Legal basis, consent, deletion timing         |
-| Learner activity      | Identity separation, exact Revision references, restricted access, anonymization/detachment capability | Retention and re-identification thresholds    |
-| Editorial/admin audit | Append-only evidence, stable/pseudonymous actor refs, restricted notes                                 | Actor-profile and note retention              |
-| Security/operations   | Minimized structured logs, protected monitoring/backups, bounded retention                             | Provider-specific periods and incident policy |
-| Local device          | Protected account state, explicit outbox/download cleanup behavior                                     | Offline expiry and device-removal UX          |
+| Class                      | Core controls                                                                                          | Policy still required                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Public content             | Immutable published history, archive/withdrawal, restricted editorial mutation                         | Content-rights and final retention policy              |
+| Learner identity           | Strong access control, deactivation, credential revocation, identifier minimization/anonymization      | Legal basis, consent, deletion timing                  |
+| Learner activity           | Identity separation, exact Revision references, restricted access, anonymization/detachment capability | Retention and re-identification thresholds             |
+| Editorial/admin audit      | Append-only evidence, stable/pseudonymous actor refs, restricted notes                                 | Actor-profile and note retention                       |
+| Taxonomy operational audit | Typed append-only targets/corrections, opaque command IDs, bounded reason codes, deny-by-default reads | Final legal/governance retention and export capability |
+| Security/operations        | Minimized structured logs, protected monitoring/backups, bounded retention                             | Provider-specific periods and incident policy          |
+| Local device               | Protected account state, explicit outbox/download cleanup behavior                                     | Offline expiry and device-removal UX                   |
 
 ## Required design controls
 
@@ -24,6 +25,7 @@ Architecture baseline for [ADR-017](../decisions/ADR-017-use-history-safe-deleti
 - Device/network metadata is potentially identifying; collection and retention are minimized.
 - Logs use allow-listed structured fields and exclude credentials, tokens, private content, full profiles, and unnecessary identifiers.
 - Retention Holds and Privacy Action Records are restricted and append-only.
+- Taxonomy audit corrections preserve originals through restrictive same-target supersession links. Each record has at most one direct successor, preventing ambiguous branching while preserving a deterministic linear history. Migration one provides no automated deletion/expiry; the later retention register must govern database rows, exports, backups, and operational copies without destroying required correction/history relationships.
 - Backup restore replays effective deletion/anonymization tombstones before restored data becomes ordinarily accessible.
 
 ## Retention register requirements

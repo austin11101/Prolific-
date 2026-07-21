@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; taxonomy lifecycle amended by FPSD-013 on 2026-07-17
 
 ## Decision date
 
@@ -105,16 +105,14 @@ An authorized audited command may reassign a Lesson to another active Topic only
 
 ### Lifecycle states
 
-Category and Topic each support:
+FPSD-013 amends the taxonomy lifecycle to exactly two conceptual values:
 
-| State      | Meaning                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------------- |
-| `draft`    | Internal preparation; not learner-visible.                                                        |
-| `active`   | Eligible for discovery when ancestry and published-content conditions are satisfied.              |
-| `hidden`   | Reversible operational suppression from ordinary discovery; retained for internal operations.     |
-| `archived` | Intentional retirement from active use; identity, descendants, content, and history are retained. |
+| State      | Meaning                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `ACTIVE`   | Default; eligible for discovery when ancestry and published-content conditions are satisfied.    |
+| `ARCHIVED` | Reversible retirement from active use; identity, descendants, content, and history are retained. |
 
-Hidden and archived taxonomy are excluded from ordinary learner discovery. Hidden is reversible suppression; archived restoration requires an explicit audited action. Direct historical resolution remains subject to later product policy.
+`DELETED`, hidden, and withdrawal are not taxonomy lifecycle states. Archived restoration requires an explicit audited action. Direct historical resolution remains subject to later product policy.
 
 ### Archive propagation and effective visibility
 
@@ -127,15 +125,15 @@ Archive propagation uses Effective Visibility: an inactive ancestor makes descen
 ### Restoration
 
 - Restoration is authorized and audited.
-- Restoring a Category never sets descendants to `active` automatically.
-- Restoring a Topic requires its Category and required ancestors to be active or restored.
+- Restoring a Category never sets descendants to `ACTIVE` automatically.
+- Restoring a Topic requires its Category and required ancestors to be `ACTIVE` or restored.
 - Restoration revalidates active normalized sibling uniqueness and cannot create duplicate active taxonomy.
 - Stable IDs and original creation timestamps remain unchanged; restoration actor/time/reason are appended.
 - Historical Lesson Revisions remain immutable.
 
 ### Deletion policy
 
-Normal retirement uses archive, never hard delete. Hard deletion is prohibited for Categories or Topics with descendants, Lessons, Revisions, Reading Sessions, packages, or audit history. Unused draft taxonomy may be purged only under a later tightly controlled policy before any historical reference exists. Destructive cascades and broader deletion/retention boundaries follow [ADR-017](./ADR-017-use-history-safe-deletion-and-anonymization.md).
+Normal retirement uses archive, never hard delete. Hard deletion is prohibited for Categories or Topics with descendants, Lessons, Revisions, Reading Sessions, packages, or audit history. Destructive cascades and broader deletion/retention boundaries follow [ADR-017](./ADR-017-use-history-safe-deletion-and-anonymization.md).
 
 ### Display ordering
 
@@ -250,7 +248,7 @@ Deferred because it changes ownership, discovery, and reporting semantics.
 - Display-order allocation/renumbering algorithm and tie-breaker fields.
 - Discovery projection refresh/invalidation implementation.
 - Maximum recommended product depth beyond the normal three-level MVP guideline.
-- Purge eligibility for unused never-referenced drafts.
+- Any future exceptional treatment of erroneous never-referenced taxonomy.
 - Historical taxonomy snapshot requirements for analytics/reporting.
 
 These details do not reopen Category ownership, single-parent acyclic hierarchy, scoped uniqueness, same-Category movement, Effective Visibility, restoration, or non-destructive history rules.

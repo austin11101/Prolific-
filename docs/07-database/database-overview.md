@@ -4,7 +4,7 @@
 
 | Item               | Value                                                                                                                                                     |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status             | Approved persistence architecture; physical design pending Architecture Gate conditions                                                                   |
+| Status             | Approved five-table initial migration applied and verified in configured local development PostgreSQL 16.13; downstream work remains gated                |
 | Decision authority | [ADR-012](../decisions/ADR-012-use-prisma-for-core-api-persistence.md) and [ADR-013](../decisions/ADR-013-use-lesson-variants-and-immutable-revisions.md) |
 | Domain authority   | [Canonical Domain Model](../architecture/canonical-domain-model.md)                                                                                       |
 | Conceptual model   | [Conceptual ERD](./erd.md)                                                                                                                                |
@@ -13,9 +13,19 @@
 
 ## Purpose and scope
 
-This document defines the approved database-access, migration, transaction, integrity, seed, and operational boundaries for the Core API. It does not define the physical schema. Architecture Gate 001 is closed with `PASS`; physical design and implementation may begin only after formal Sprint 2 entry and the applicable [Sprint 2 Entry Checklist](../reviews/SPRINT-2-ENTRY-CHECKLIST.md) decisions.
+This document defines the approved database-access, migration, transaction, integrity, seed, and operational boundaries for the Core API. Architecture Gate 001 is closed with `PASS`; the exact five-table Prisma design is approved, implemented, and reviewed; and Sprint 2.15 successfully applied it to the configured local development database under the [Execution Approval](../reviews/FIRST-MIGRATION-EXECUTION-APPROVAL.md). Sprint 2.16 froze the verified [Foundation Baseline](../reviews/FOUNDATION-BASELINE.md) and authorized bounded repository implementation. Seeds, services, APIs, additional migrations, and other downstream work remain blocked by their separate gates.
+
+The implemented physical mapping is documented in the [First Physical Schema Proposal](./first-physical-schema-proposal.md), with deterministic reference data in the [First Seed Data Proposal](./first-seed-data-proposal.md). The schema is applied and verified; seed execution remains blocked, so all five application tables are empty.
 
 PostgreSQL is the primary relational database. The Canonical Domain Model defines business meaning, and the Conceptual ERD identifies persistence candidates without forcing table-per-concept storage.
+
+## Sprint 2.5 physical boundary
+
+The canonical model continues to include learner identity, content, reading, synchronization, privacy, and editorial concepts. FPSD-001 reduces the current physical migration-one proposal to five tables only: `actor_principals`, `languages`, `categories`, `topics`, and `taxonomy_change_records`. `users`, `user_preferences`, and `devices` are deferred identity-shell tables. All other conceptual candidates remain future physical-design work.
+
+FPSD-009/FPSD-010 approve exactly three active content-language identities with independently stored labels/tags, ISO bases, deterministic order, and fixed governance-owned UUIDs as recorded in the [Seed Proposal](./first-seed-data-proposal.md). Interface-language support is not represented.
+
+FPSD-009, FPSD-010, FPSD-013, FPSD-014, all 22 multidisciplinary findings, and Sprint 2.9 amendment verification are resolved or accepted with no technical/design-decision blocker remaining. The approved Prisma schema is implemented and reviewed, and the finalized candidate is recorded in the [First Migration SQL Review](../reviews/FIRST-MIGRATION-SQL-REVIEW.md). Sprint 2.15 successfully applied and verified it as documented in the [Execution Report](../reviews/FIRST-MIGRATION-EXECUTION-REPORT.md). Sprint 2.16 authorizes repository implementation only; seeds, APIs, services, additional migrations, production privileges, and Flutter implementation remain unauthorized.
 
 ## Approved persistence technology
 
@@ -27,18 +37,28 @@ PostgreSQL is the primary relational database. The Canonical Domain Model define
 - Domain models and API DTOs remain separate from Prisma records and generated inputs.
 - Prisma access occurs through infrastructure adapters; it is not available to controllers or domain objects.
 
-### Planned Prisma structure
+### Prisma tooling structure
 
-The Core API will own this planned structure during an authorized Sprint 2 implementation task:
+Sprint 2.2 created the model-free tooling boundary:
 
 ```text
 services/core-api/prisma/
-|-- schema.prisma
 |-- migrations/
-`-- seed/
+|   |-- migration_lock.toml
+|   `-- 20260717_initial_foundation/migration.sql
+`-- schema.prisma
+
+services/core-api/
+|-- prisma.config.ts
+`-- src/infrastructure/
+    |-- database/
+    |   |-- prisma-database.config.ts
+    |   |-- prisma.module.ts
+    |   `-- prisma.service.ts
+    `-- persistence/generated/prisma/  # generated and Git-ignored
 ```
 
-This directory is not created by this documentation decision.
+The schema contains only the Prisma client generator and PostgreSQL datasource. It has no models, enums, relations, constraints, indexes, SQL, or seed definition. The reserved `prisma/migrations/` path is configured but the directory does not exist. The explicit `pg` pool is bounded by documented environment settings and is owned by one non-global NestJS Prisma service.
 
 ## Migration ownership and rules
 
@@ -124,17 +144,22 @@ Exact model names, fields, constraints, indexes, locking syntax, and revision-al
 
 ## Taxonomy persistence expectations
 
-- Category and Topic use stable UUID identity, explicit display order, and lifecycle states `draft`, `active`, `hidden`, and `archived`; localized display names do not replace the Canonical Taxonomy Name.
+- Category and Topic use stable UUID identity, explicit display order, and exactly two conceptual lifecycle values: `ACTIVE` and `ARCHIVED`. New rows default to `ACTIVE`; `DELETED`, hidden, and withdrawal are not taxonomy lifecycle states. Localized display names do not replace the Canonical Taxonomy Name.
 - Every Topic has exactly one Category and zero or one parent Topic. Parent and child must share a Category, and authoritative ancestry must remain finite and acyclic.
-- Active Category canonical names are normalized-unique. Active Topic canonical names are normalized-unique within the sibling scope `(category_id, parent_topic_id)`; exact normalization/collation remains a reviewed physical-design choice.
+- Active Category canonical names are normalized-unique. Active Topic canonical names are normalized-unique within the sibling scope `(category_id, parent_topic_id)`. FPSD-005 approves the Unicode comparison profile; TN-001 through TN-022 must be automated before taxonomy repository acceptance.
+- Stored Language/tag and taxonomy normalized comparison fields use explicit PostgreSQL `"C"` collation in the future migration for deterministic bytewise equality. Display text remains ordinary Unicode and uses no normalized-key linguistic ordering. Any Prisma collation limitation requires separately reviewed migration customization before execution.
 - Create, rename, reorder, reparent, lifecycle, restoration, and Lesson-reassignment operations validate current state and expected version in an application-owned transaction. Reparenting moves the entire subtree within one Category; cross-Category reparenting is prohibited.
 - A Lesson may be reassigned only to an active Topic in its existing Category. Taxonomy changes never rewrite Lesson Revisions, Reading Sessions, progress, or historical analytics.
 - Effective Visibility combines a node's own state with every ancestor. Archiving a parent does not bulk-update descendants; restoration re-evaluates current descendant state and conflicts.
+- Archive records `archived_at` and increments the expected version. Restoration clears the archive timestamp and revalidates uniqueness, parent validity, Category consistency, Effective Visibility, and concurrency tokens.
 - Hard deletion and destructive cascades are prohibited once taxonomy is referenced. Governed commands append actor/time/reason/prior/resulting audit evidence in the same transaction as the authoritative change.
+- `taxonomy_change_records` uses exactly one nullable Category/Topic target FK, derives target type from that populated FK, and has no `target_type`, narrative, arbitrary JSON, request, response, or identity-label field. Corrections append a restrictive self-reference and never modify original evidence. Nullable uniqueness on the predecessor link permits at most one direct successor, producing a linear non-branching chain; terminal/same-target/acyclic validation remains transactional.
 - Recursive queries, closure/path tables, or materialized ancestry may support reads. Any such structure is a rebuildable projection and cannot become the authority for mutation validation.
 - Discovery queries must efficiently filter active ancestors, active taxonomy, deterministic order, and eligible published content without assuming a fixed hierarchy depth.
 
-Exact indexes, collation/normalization implementation, hierarchy locking/versioning, localization storage, and projection-refresh mechanics remain deferred within [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md).
+The finalized migration records 17 non-primary indexes, eight FKs, 26 checks, five non-primary-key unique constraints, and five primary keys: 44 named table constraints overall. Five unique constraints own ordinary backing indexes, three standalone partial unique indexes enforce active-name scopes, and nine indexes are non-unique. Four normalized comparison columns use explicit PostgreSQL `"C"` collation. Normalization-library/version pinning, localization storage, and projection-refresh mechanics remain reviewed implementation work within [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md). FPSD-006 approves application-owned cycle prevention; FPSD-014 supplies the conceptual [Database Privilege Model](./database-privilege-model.md) supporting repository-only writes and least privilege.
+
+Category locking is the sole migration-one raw-query exception: parameterized values and static reviewed identifiers inside the taxonomy persistence adapter and a Prisma interactive transaction, returning only required Category identity/version columns. Controllers, general services, other repositories, diagnostics, and unrestricted reads may not invoke it. The complete hierarchy validation/mutation/audit operation is atomic; recognized transaction retries are bounded; database failures are translated; observability excludes SQL text, bound values, names, and audit/identity payloads. Concurrent reparenting, stale-version, wrong-Category, deadlock/retry, rollback, uniqueness, and audit-atomicity integration evidence is mandatory.
 
 ### Process synchronization event
 
@@ -148,7 +173,7 @@ One transaction detects a duplicate event, applies accepted progress, writes the
 - Stable internal identifiers avoid email/name in activity/history. Every denormalized personal-data copy requires documented purpose and treatment.
 - Privacy Action Records and Retention Holds are restricted, append-only/data-minimized concepts. Corrections supersede; records exclude credentials, copied profiles, and private activity payloads.
 - Account deactivation must prevent new synchronization acceptance and support deletion/anonymization tombstones that survive retries and restoration. Late Devices cannot recreate identity or reattach retained activity.
-- Published/referenced content, exact Revisions/packages, and audit evidence are never purged. Never-published, unreviewed, unreferenced draft helpers may be purged only after dependency/audit/hold checks and evidence.
+- Published/referenced content and exact Revisions/packages are not destructively purged under current rules. Migration one performs no automated deletion or expiry of taxonomy audit evidence and prohibits its physical deletion while the final governance/legal retention schedule is pending; this interim preservation rule is not a claim to retain forever. Never-published, unreviewed, unreferenced draft helpers may be purged only after dependency/audit/hold checks and evidence.
 - Backup policy is separate from ordinary data access. Restore procedures reapply current deletion, anonymization, deactivation, and withdrawal state before restored data is exposed.
 - Every proposed cascade, including temporary helper/token/upload cleanup, requires explicit review and justification in physical design.
 - Retention design records purpose, basis, minimum/maximum duration, trigger, treatment, holds, owner, and evidence. Exact periods and legal bases remain specialist policy.
@@ -173,6 +198,8 @@ Candidate Prisma adapters include:
 - `PrismaReadingSessionRepository`
 - `PrismaProgressEventRepository`
 - `PrismaSyncReceiptRepository`
+
+A controlled actor-principal provisioning boundary may idempotently create/read immutable pseudonymous actor IDs without a public endpoint, labels, direct identifiers, provider subjects, update, or deletion. Future identity/service linkage uses separate mappings and never replaces historical actor IDs. Language rows are governance-owned reference data: runtime create/update/delete and migration-one administrator mutation endpoints are prohibited; reviewed seed/migration amendments preserve UUIDs.
 
 Not every physical table requires a repository. Generic repositories that obscure meaningful database behavior are prohibited. Reporting, administrative dashboards, and projections may use dedicated read repositories. Interfaces must not expose Prisma client, record, filter, transaction, or generated input types.
 
@@ -232,7 +259,7 @@ Future Core API CI must validate:
 - multi-repository transaction atomicity; and
 - synchronization idempotency and duplicate-event handling.
 
-This task does not add tooling or CI configuration. Exact drift and test-database tools remain to be selected.
+Sprint 2.2 adds local `prisma:format`, `prisma:validate`, and `prisma:generate` scripts only. It does not add migration, push, pull, deploy, drift, seed, or CI automation. Exact drift and test-database tools remain to be selected.
 
 The planned production order is:
 
@@ -250,15 +277,15 @@ Deployment must stop on migration failure and follow the approved runbook. Compa
 
 ADR-012 resolves the ORM, migration owner, repository boundary, and transaction owner. It does not resolve:
 
-- exact Prisma version and connection-pool configuration;
+- physical-schema-specific pool/query tuning beyond the installed bounded baseline;
 - PostgreSQL extensions;
 - drift tooling and test-database strategy;
-- raw SQL escape-hatch governance;
+- raw SQL beyond the approved, taxonomy-adapter-only Category-row locking exception;
 - physical model names, columns, types, indexes, foreign-key actions, and timestamp precision;
 - exact Working Draft concurrency token, locking strategy, physical structure, revision-allocation query, and translation-lineage representation. Lesson/Variant/Revision identity, numbering scope, uniqueness, optimistic-concurrency principle, and immutability are approved by ADR-013 under AG-002;
 - physical JSON-versus-relational representation for approved AG-003 blocks/positions/alignment, exact canonical-JSON library, and package delivery/archive mechanics; the conceptual model is approved by ADR-014 and awaits human verification;
-- exact physical actor/reference/capability mapping, actor snapshots, review-note protection, and superseding-record layout within the approved AG-004 boundary;
-- exact taxonomy normalization/collation, localized-name mapping, ordering allocation, hierarchy concurrency and recursive/materialized ancestry strategy within the boundary approved by [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md); or
+- future actor identity/capability mappings, actor snapshots, and review-note protection within the approved AG-004 boundary; MDR-XD-002 direct-supersession multiplicity is resolved;
+- taxonomy localization, ordering allocation, optional recursive/materialized ancestry projections, and provider-specific privilege implementation within the boundary approved by [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md), FPSD-005/FPSD-006/FPSD-013/FPSD-014, and the [Database Privilege Model](./database-privilege-model.md); or
 - exact identity/activity detachment, Privacy Action Record/Retention Hold mapping, tombstone, anonymization, backup reapplication, and retention automation within the boundary approved by [ADR-017](../decisions/ADR-017-use-history-safe-deletion-and-anonymization.md).
 
 Gate verification no longer blocks database implementation. Formal Sprint 2 start, remaining Sprint 1 governance, and applicable before-first-migration checklist items still control when implementation may begin.

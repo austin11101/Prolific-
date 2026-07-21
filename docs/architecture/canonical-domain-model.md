@@ -52,6 +52,8 @@ The MVP recognizes three actor states:
 
 Parent, teacher, school, NGO, library, subscription, and payment roles are not part of the MVP. Child consent, recovery, exact privacy/legal deletion and retention policy, and administrator identity implementation remain unresolved; ADR-017 resolves the history-safe architecture boundary.
 
+The migration-one pseudonymous `actor_principals` projection is provisioned only through a controlled backend service/repository boundary. It has no public endpoint, label, direct identifier, authentication-provider subject, mutable profile, or runtime deletion. Provisioning is idempotent under an approved command/stable internal operation; future user/service linkage uses separate mappings and never replaces historical audit actor UUIDs.
+
 ## Language model
 
 Language has three distinct uses:
@@ -96,12 +98,12 @@ The MVP launch languages are English, isiZulu, and Sepedi. Flags must not repres
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Definition              | A supported human language used for interface localization, lesson content, or tutorial audio.                                                    |
 | Purpose                 | Identify, filter, validate, and localize content without assuming equal inventories.                                                              |
-| Identity                | Canonical BCP 47 language tag; internal UUID may be added physically without replacing the tag's semantic identity.                               |
+| Identity                | Immutable governance-owned UUID plus an independently unique canonical BCP 47 tag; ISO basis and display order do not define identity.            |
 | Ownership               | Platform-managed reference data.                                                                                                                  |
 | Lifecycle               | Configured, made active for an approved use, and potentially retired from new discovery without rewriting history.                                |
 | State transitions       | Inactive to active or active to inactive through authorized configuration; launch scope changes require product approval.                         |
-| Core attributes         | Language tag, canonical name, localized display names, supported-use indicators.                                                                  |
-| Mutable attributes      | Display names and active-use indicators.                                                                                                          |
+| Core attributes         | Language tag, canonical name, localized display names, and separately approved supported-use indicators.                                          |
+| Mutable attributes      | Governed display/use configuration only through reviewed compatibility-preserving change; no migration-one runtime mutation.                      |
 | Immutable attributes    | Meaning of an issued language tag in historical Lesson Variants and Lesson Revisions.                                                             |
 | Invariants              | A Lesson Variant has exactly one lesson-content Language; its revisions and tutorial audio use that language; flags are not language identifiers. |
 | Business rules          | MVP content languages are English, isiZulu, and Sepedi; a lesson need not exist in all three.                                                     |
@@ -114,36 +116,38 @@ The MVP launch languages are English, isiZulu, and Sepedi. Flags must not repres
 | Privacy implications    | None intrinsically; a learner's language preference may be personal profile data.                                                                 |
 | Unresolved decisions    | Interface-language launch coverage, canonical localized names, and language-specific pace/timing adjustments.                                     |
 
+The first physical migration represents content-language reference data only. It stores separate canonical and normalized name/tag values, uses the shared backend validation implementation, and excludes tutorial-audio, text-to-speech, voice, interface-language, and per-language lesson-availability capability fields. Those domain uses remain valid concepts but require later Product/domain decisions before physical capability mapping.
+
 ### Category
 
 | Aspect                  | Canonical model                                                                                                                                                                                                                         |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Definition              | Stable language-neutral top-level knowledge grouping containing Topics, never Lesson content directly.                                                                                                                                  |
-| Identity/attributes     | Stable UUID; Canonical Taxonomy Name; localized names/descriptions; icon; explicit display order; `draft`/`active`/`hidden`/`archived`; UTC timestamps and archive metadata.                                                            |
+| Identity/attributes     | Stable UUID; Canonical Taxonomy Name; localized names/descriptions; icon; explicit display order; `ACTIVE`/`ARCHIVED`; UTC timestamps and archive metadata.                                                                             |
 | Naming                  | Active normalized canonical names are unique. Normalization is case-insensitive and whitespace-normalized; deterministic punctuation/diacritic details remain implementation work.                                                      |
-| Lifecycle               | Draft preparation, active discovery eligibility, reversible hidden suppression, intentional archive, and audited restoration.                                                                                                           |
+| Lifecycle               | `ACTIVE` by default, reversible `ARCHIVED` retirement, and audited restoration. `DELETED`, hidden, and withdrawal are not taxonomy lifecycle states.                                                                                    |
 | Archive/restoration     | Archive makes every descendant path effectively unavailable without rewriting Topic states. Restore preserves identity/creation time, records actor/time/reason, revalidates uniqueness, and never activates descendants automatically. |
 | Ordering/localization   | Order/icon/localized metadata are mutable presentation data; changes do not alter identity, create entities, or create Lesson Revisions.                                                                                                |
 | Discovery eligibility   | State is active, an eligible Topic path exists, and it reaches a published learner-visible Revision for the browsing context.                                                                                                           |
-| Historical requirements | Rename, hide, archive, restore, or reorder never breaks Topic, Lesson, Revision, Reading Session, or audit references. Hard delete/cascade is prohibited once referenced.                                                               |
-| Commands/events         | CreateCategory, UpdateCategoryMetadata, HideCategory, ArchiveCategory, RestoreCategory with append-only actor/time/state/reason audit evidence.                                                                                         |
-| Unresolved details      | Physical localization, exact normalization/collation, display-order allocation, projection refresh, and never-referenced draft purge.                                                                                                   |
+| Historical requirements | Rename, archive, restore, or reorder never breaks Topic, Lesson, Revision, Reading Session, or audit references. Hard delete/cascade is prohibited once referenced.                                                                     |
+| Commands/events         | CreateCategory, UpdateCategoryMetadata, ArchiveCategory, RestoreCategory with append-only actor/time/state/reason audit evidence.                                                                                                       |
+| Unresolved details      | Physical localization, display-order allocation, projection refresh, and any exceptional treatment of erroneous never-referenced taxonomy.                                                                                              |
 
 ### Topic
 
-| Aspect                  | Canonical model                                                                                                                                                                                                |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Definition              | Stable focused subject in exactly one Category, with zero or one Parent Topic and zero or more child Topics/Lessons.                                                                                           |
-| Identity/attributes     | Stable UUID; Category ID; optional Parent Topic ID; Canonical Taxonomy Name; localized names/descriptions; sibling order; Category-compatible lifecycle/timestamps/archive metadata.                           |
-| Hierarchy invariants    | Parent/child share Category; one parent maximum; self-parent/descendant cycles prohibited; authoritative parent graph is acyclic and finite; depth is not fixed.                                               |
-| Naming                  | Active canonical names are unique within `Category + Parent Topic` sibling scope after case/whitespace normalization; names may repeat in other branches.                                                      |
-| Reparenting             | Audited concurrency-checked move of complete subtree within the same Category; validates ancestry, cycle, destination uniqueness, and order atomically. Cross-Category moves are prohibited for MVP.           |
-| Lifecycle/visibility    | Own states are `draft`/`active`/`hidden`/`archived`. Inactive ancestor causes Effective Visibility suppression without rewriting descendants. Restore requires eligible ancestors and uniqueness revalidation. |
-| Discovery eligibility   | Own state, Category, and every ancestor are active, and self/descendant path reaches published content. Clients assume no fixed depth; MVP navigation normally uses at most three visible levels.              |
-| Lesson reassignment     | Audited same-Category reassignment to active Topic preserves Lesson/Revision/Session identity and changes future discovery only. Cross-Category reassignment is deferred.                                      |
-| Historical requirements | Rename, reorder, reparent, hide, archive, or restore never rewrites Lesson Revisions, Reading Sessions, or historical analytics. Normal retirement uses archive; destructive cascades are prohibited.          |
-| Commands/events         | Create/Update/Reparent/Hide/Archive/Restore Topic and ReassignLessonToTopic with server actor, concurrency, reason, prior/resulting state, and append-only audit evidence.                                     |
-| Unresolved details      | Ancestry optimization/query, normalization/collation, localization, order allocation, projection refresh, recommended product depth, and unused-draft purge.                                                   |
+| Aspect                  | Canonical model                                                                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Definition              | Stable focused subject in exactly one Category, with zero or one Parent Topic and zero or more child Topics/Lessons.                                                                                 |
+| Identity/attributes     | Stable UUID; Category ID; optional Parent Topic ID; Canonical Taxonomy Name; localized names/descriptions; sibling order; Category-compatible lifecycle/timestamps/archive metadata.                 |
+| Hierarchy invariants    | Parent/child share Category; one parent maximum; self-parent/descendant cycles prohibited; authoritative parent graph is acyclic and finite; depth is not fixed.                                     |
+| Naming                  | Active canonical names are unique within `Category + Parent Topic` sibling scope after case/whitespace normalization; names may repeat in other branches.                                            |
+| Reparenting             | Audited concurrency-checked move of complete subtree within the same Category; validates ancestry, cycle, destination uniqueness, and order atomically. Cross-Category moves are prohibited for MVP. |
+| Lifecycle/visibility    | Own state is `ACTIVE` or `ARCHIVED`. Archived ancestry suppresses Effective Visibility without rewriting descendants. Restore requires eligible ancestors and uniqueness revalidation.               |
+| Discovery eligibility   | Own state, Category, and every ancestor are active, and self/descendant path reaches published content. Clients assume no fixed depth; MVP navigation normally uses at most three visible levels.    |
+| Lesson reassignment     | Audited same-Category reassignment to active Topic preserves Lesson/Revision/Session identity and changes future discovery only. Cross-Category reassignment is deferred.                            |
+| Historical requirements | Rename, reorder, reparent, archive, or restore never rewrites Lesson Revisions, Reading Sessions, or historical analytics. Normal retirement uses archive; destructive cascades are prohibited.      |
+| Commands/events         | Create/Update/Reparent/Archive/Restore Topic and ReassignLessonToTopic with server actor, concurrency, reason, prior/resulting state, and append-only audit evidence.                                |
+| Unresolved details      | Ancestry optimization/query, localization, order allocation, projection refresh, recommended product depth, and exceptional never-referenced taxonomy treatment.                                     |
 
 ### Lesson
 
@@ -352,11 +356,11 @@ User Progress, Daily Streak, discovery catalogs, analytics, and synchronized ser
 | PrivacyActionRecorded         | Minimal append-only evidence of a privacy action was committed.                            | Restricted audit and compliance operations.            | Restricted internal audit event.                                | Stable action ID; corrections supersede.                              |
 | CategoryCreated               | An authorized actor created a stable Category identity.                                    | Taxonomy audit and discovery projections.              | Internal domain event.                                          | Stable command and Category IDs prevent duplicates.                   |
 | CategoryMetadataUpdated       | A Category name, localization, icon, or order changed.                                     | Taxonomy audit and discovery projections.              | Internal domain event.                                          | Expected version rejects stale updates.                               |
-| CategoryVisibilityChanged     | A Category was hidden, archived, or restored.                                              | Taxonomy audit, catalog, and eligibility projections.  | Internal domain event.                                          | Stable command ID and expected state make retries safe.               |
+| CategoryVisibilityChanged     | A Category was archived or restored.                                                       | Taxonomy audit, catalog, and eligibility projections.  | Internal domain event.                                          | Stable command ID and expected state make retries safe.               |
 | TopicCreated                  | A Topic was created under one Category and optional parent Topic.                          | Taxonomy audit and discovery projections.              | Internal domain event.                                          | Stable command and Topic IDs prevent duplicates.                      |
 | TopicMetadataUpdated          | A Topic name, localization, or order changed.                                              | Taxonomy audit and discovery projections.              | Internal domain event.                                          | Expected version rejects stale updates.                               |
 | TopicReparented               | A Topic subtree moved to another parent in the same Category.                              | Taxonomy audit, ancestry, and catalog projections.     | Internal domain event.                                          | Stable command ID and expected hierarchy version prevent replay.      |
-| TopicVisibilityChanged        | A Topic was hidden, archived, or restored.                                                 | Taxonomy audit, catalog, and eligibility projections.  | Internal domain event.                                          | Stable command ID and expected state make retries safe.               |
+| TopicVisibilityChanged        | A Topic was archived or restored.                                                          | Taxonomy audit, catalog, and eligibility projections.  | Internal domain event.                                          | Stable command ID and expected state make retries safe.               |
 | LessonReassignedToTopic       | A Lesson moved to another active Topic in the same Category.                               | Taxonomy audit and discovery projections.              | Internal domain event.                                          | Expected Lesson version rejects stale reassignment.                   |
 | LessonVariantCreated          | A unique language/difficulty Variant was created for a Lesson.                             | Publishing workflow, catalog preparation, audit.       | Internal domain event.                                          | Stable Variant ID and uniqueness prevent duplicate active streams.    |
 | LessonDraftCreated            | A Variant received its one active Working Draft.                                           | Editorial workflow and audit.                          | Internal domain event.                                          | Repeated command returns the existing compatible draft or conflicts.  |
@@ -424,7 +428,7 @@ These are candidate event names and meanings, not a requirement for a broker, ev
 34. A Topic belongs to exactly one Category, has at most one parent Topic, and any parent belongs to the same Category without creating a cycle.
 35. Active Category canonical names are normalized-unique; active Topic canonical names are normalized-unique among siblings within one Category.
 36. Subtree reparenting is same-Category only and transactionally validates the destination, cycle freedom, scoped name, lifecycle, and expected hierarchy version.
-37. A hidden or archived ancestor makes descendants effectively unavailable without rewriting descendant lifecycle states; restoration re-evaluates each descendant's own state and ancestors.
+37. An archived ancestor makes descendants effectively unavailable without rewriting descendant lifecycle states; restoration re-evaluates each descendant's own state and ancestors.
 38. Taxonomy renames, reordering, reparenting, lifecycle changes, and Lesson reassignment do not rewrite Lesson Revision, Reading Session, progress, or audit history.
 39. Referenced Categories and Topics are retired through lifecycle state; destructive cascades and hard deletion are prohibited.
 40. Deactivation, archive, withdrawal, anonymization, pseudonymization, retention, Retention Hold, and purge remain distinct operations.
@@ -579,6 +583,7 @@ Guest Session, Daily Streak, Offline Lesson Package, Sync Request, and Sync Curs
 - Historical Reading Sessions retain exact Lesson Revision identity, its Lesson Variant Language/Difficulty, actual pace, positions, word count, practice timing, completion, and event/sync provenance. Later Revisions never rewrite those facts.
 - Taxonomy/content archival removes new discovery but does not break historical references.
 - Published source attribution and review/publication evidence remain auditable.
+- Taxonomy audit evidence is restricted operational audit data. Migration one preserves it without automated deletion or expiry while its legal/governance retention schedule remains pending; this is not a permanent-retention claim. Corrections append immutable same-target evidence in a deterministic linear chain: every record has at most one direct successor, branching is prohibited, and originals are never edited.
 - Editorial evidence uses stable actor IDs and minimal permitted snapshots; role/profile changes or deactivation never rewrite recorded actions.
 - Internal review notes are restricted sensitive administrative data, excluded from learner APIs/packages, and separately classified from learner activity.
 - Administrative editorial capabilities do not automatically authorize access to private learner activity.
@@ -600,7 +605,7 @@ Guest Session, Daily Streak, Offline Lesson Package, Sync Request, and Sync Curs
 - Timezone source/change, delayed-sync streak policy, and clock-manipulation handling.
 - Sync batch/retention/cursor limits and detailed multi-device reconciliation.
 - Accessibility target, child safeguarding/consent, analytics provider, legal basis, exact retention periods, deletion timeframe, anonymization algorithm/effectiveness, device/IP treatment, backup expiry, and privacy-review ownership.
-- Exact taxonomy ancestry query/optimization, normalization and collation, localization storage, display-order allocation, projection refresh, recommended product depth, and never-referenced draft purge. The hierarchy, lifecycle, reparenting, restoration, integrity, and audit boundary is approved by [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md).
+- Exact taxonomy ancestry query optimization, localization storage, display-order allocation, projection refresh, recommended product depth, and never-referenced draft purge. The normalization profile, shared validation ownership, explicit PostgreSQL `"C"` comparison collation, hierarchy, lifecycle, reparenting, restoration, integrity, and audit boundary are approved; migration syntax and evidence remain gated by [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md) and the physical review.
 - Production self-approval configuration, actor snapshot minimization, review-quality rubric, internal-note retention/access, images/package assets, and source-quality rubric.
 
 These questions are tracked in [Sprint 1 Open Questions](../reviews/SPRINT-1-OPEN-QUESTIONS.md) and are not resolved by this draft.

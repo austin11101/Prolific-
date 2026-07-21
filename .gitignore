@@ -8,6 +8,7 @@ node_modules/
 dist/
 coverage/
 *.log
+services/core-api/src/infrastructure/persistence/generated/prisma/
 
 # Flutter / Dart
 .dart_tool/

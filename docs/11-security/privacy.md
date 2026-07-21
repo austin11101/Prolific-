@@ -24,6 +24,8 @@ Late offline events cannot recreate the account or reattach activity. Client beh
 
 Learners access only their own active-account data. Administrative access to learner activity is not implied by content roles and requires a separately approved purpose/capability with access logging. Internal Privacy Action Records, audit notes, and retained anonymized activity are excluded from learner catalog/package APIs.
 
+`taxonomy_change_records` is restricted operational audit data and may remain pseudonymous through its stable actor reference. It is excluded from public APIs, learners, anonymous users, normal content reads, analytics, default operational-reader access, and unauthorized exports. It contains no arbitrary narrative/JSON, identity labels, request/response bodies, or personal-data-bearing reason/command values. Corrections form a one-successor linear chain and preserve every original record. Migration one preserves it without automated deletion or expiry while the final governance/legal retention schedule remains pending; this interim rule does not claim permanent retention and must later cover backups and operational copies.
+
 ## Unresolved policy
 
 Consent and child safeguarding, legal basis, request verification/recovery, export/correction procedure, completion timeframe, exact retention, anonymization testing, IP/device treatment, backup expiry, guest analytics, and accountable privacy owner require specialist approval before affected release work.

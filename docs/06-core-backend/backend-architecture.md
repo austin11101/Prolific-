@@ -13,9 +13,19 @@
 
 ## Purpose and scope
 
-This document defines the approved Core API boundaries for AG-001 through AG-006, including persistence, immutable content, packages, editorial/taxonomy audit, and history-safe privacy treatment. It does not implement modules, services, repositories, Prisma, database entities, migrations, or APIs. Authentication, detailed module composition, final API contracts, exact privacy policy, and physical mappings remain pending.
+This document defines the approved Core API boundaries for AG-001 through AG-006, including persistence, immutable content, packages, editorial/taxonomy audit, and history-safe privacy treatment. Sprint 2.17 through Sprint 2.23 completed and reviewed the shared [Persistence Architecture](../04-architecture/persistence-architecture.md) and all five foundation repository adapters. Sprint 2.24 through Sprint 2.26 implemented read-only taxonomy queries, Sprint 2.27 implemented [Actor Principal provisioning](../reviews/ACTOR-PROVISIONING-SERVICE-REVIEW.md), Sprint 2.28 implemented [Category ordinary mutation](../reviews/CATEGORY-MUTATION-SERVICE-REVIEW.md), and Sprint 2.29 implements [Topic ordinary mutation](../reviews/TOPIC-MUTATION-SERVICE-REVIEW.md). Database entities beyond the approved foundation, taxonomy-audit orchestration, controllers, APIs, authentication, authorization, broader runtime module composition, final API contracts, and exact privacy policy remain pending.
 
 The Core API is a versioned REST API built with NestJS and TypeScript. PostgreSQL is its primary relational database, and Prisma ORM is its approved infrastructure database-access technology.
+
+### Initial application slices
+
+`LanguageApplicationModule`, `CategoryApplicationModule`, and `TopicApplicationModule` compose their query services from the exported repository tokens. Their plain services import no NestJS, Prisma, infrastructure, HTTP, transaction, or other aggregate dependency. They return dedicated immutable application views, use `null` for single-record absence, reject invalid narrow inputs without normalization, and open no transaction. Topic collection queries preserve the repository's deterministic order and flat hierarchy representation; they do not infer effective visibility or tree semantics. All three feature modules remain non-global and absent from `AppModule` until an authorized transport or internal consumer exists.
+
+`ActorApplicationModule` composes `ActorProvisioningService` from `ACTOR_PRINCIPAL_REPOSITORY` and `TRANSACTION_MANAGER`. The plain service validates the application command, opens exactly one opaque transaction, calls `provisionControlled` with that context, and returns a dedicated immutable result. It does not perform authentication, authorization, identity-provider integration, profile/permission assignment, audit orchestration, or transport mapping. The non-global module exports only `ACTOR_PROVISIONING_SERVICE` and remains absent from `AppModule`; therefore no public or runtime caller is implied by implementation.
+
+`CategoryMutationApplicationModule` composes `CategoryMutationService` from `CATEGORY_REPOSITORY` and `TRANSACTION_MANAGER`. Its explicit current/resulting command supports only ordinary metadata, archive, and restore changes. Validation precedes one application-owned transaction; the repository owns atomic lock/hierarchy concurrency and advances only the lock version. The service performs no pre-read, retry, hierarchy change, audit append, caller authorization, or transport mapping. Its non-global module exports only `CATEGORY_MUTATION_SERVICE` and remains absent from `AppModule`.
+
+`TopicMutationApplicationModule` composes `TopicMutationService` from `TOPIC_REPOSITORY` and `TRANSACTION_MANAGER`. Its command contains only current/resulting ordinary name/lifecycle/timestamp state. The narrow repository input and Prisma update omit Category, parent, and display order; the atomic predicate uses Topic ID plus expected lock version and advances the lock once. Validation precedes one application-owned transaction and one repository call. Runtime hierarchy/order fields are rejected. The non-global module exports only `TOPIC_MUTATION_SERVICE`, registers no controller, and remains absent from `AppModule`.
 
 ## Dependency flow
 
@@ -89,7 +99,7 @@ Infrastructure adapter examples are:
 - `PrismaProgressEventRepository`
 - `PrismaSyncReceiptRepository`
 
-These examples do not require one class per table or approve a final module layout. A `TaxonomyRepository` may coordinate Category/Topic use-case needs. A `LessonRepository` coordinates aggregate/use-case operations across Lesson, Variant, Working Draft, Revision, package metadata, and typed editorial evidence under ADR-015. Not every persistence concept receives a repository, and a generic base repository must not hide behavior important to authorization, append-only history, package reconstruction, concurrency, numbering, immutability, idempotency, or performance.
+These examples do not require one class per table or approve a final module layout. A `TaxonomyRepository` may coordinate Category/Topic use-case needs. A narrow actor-principal provisioning service/repository owns idempotent immutable actor creation; it is not generic actor CRUD and exposes no public endpoint. A `LessonRepository` coordinates aggregate/use-case operations across Lesson, Variant, Working Draft, Revision, package metadata, and typed editorial evidence under ADR-015. Not every persistence concept receives a repository, and a generic base repository must not hide behavior important to authorization, append-only history, package reconstruction, concurrency, numbering, immutability, idempotency, or performance.
 
 ## Lesson application use cases
 
@@ -112,7 +122,7 @@ The planned application boundary includes:
 
 These names define conceptual use cases, not NestJS service or DTO classes.
 
-The planned taxonomy application boundary includes `CreateCategory`, `UpdateCategoryMetadata`, `HideCategory`, `ArchiveCategory`, `RestoreCategory`, `CreateTopic`, `UpdateTopicMetadata`, `ReparentTopic`, `HideTopic`, `ArchiveTopic`, `RestoreTopic`, and `ReassignLessonToTopic`. These are explicit governed commands rather than generic CRUD or delete operations.
+The planned taxonomy application boundary includes `CreateCategory`, `UpdateCategoryMetadata`, `ArchiveCategory`, `RestoreCategory`, `CreateTopic`, `UpdateTopicMetadata`, `ReparentTopic`, `ArchiveTopic`, `RestoreTopic`, and `ReassignLessonToTopic`. FPSD-013 permits only `ACTIVE` and `ARCHIVED` taxonomy states. These are explicit governed commands rather than generic CRUD or delete operations.
 
 The planned privacy/lifecycle boundary includes `RequestAccountDeletion`, `DeactivateLearnerAccount`, policy-permitted `CancelDeletionRequest`, `ApplyIdentityAnonymization`, `PlaceRetentionHold`, `ReleaseRetentionHold`, `PurgeEligibleDraftData`, `ArchiveLesson`, `WithdrawLessonRevision`, `DeactivateAdministrativeActor`, and `DisableServiceActor`. Archive, withdrawal, deactivation, anonymization, hold, and purge are distinct authorized use cases; repositories expose no generic destructive delete for historical aggregates.
 
@@ -133,6 +143,14 @@ Draft mutation commands supply the expected concurrency token. The application s
 - Repository adapters map persistence records to domain models or application projections.
 - API DTOs map at the transport boundary and do not expose Prisma-generated shapes.
 - A change in Prisma naming or relation representation must not silently change domain terminology or public contracts.
+
+### Sprint 2.17 persistence foundation
+
+The Core API uses Prisma `7.8.0`, `@prisma/adapter-pg` `7.8.0`, and `pg` `8.22.0. The Core API package is ESM with TypeScript NodeNext. Its model-free Prisma schema generates client code only under the ignored infrastructure path `src/infrastructure/persistence/generated/prisma/`.
+
+The model-free description above records the original Sprint 2.2 tooling state. The current approved schema contains five models and retains the same generated-client output boundary.
+
+The non-global `PrismaModule` owns a single `PrismaService`, explicit bounded `pg.Pool`, adapter, startup connection, and idempotent shutdown. Environment parsing requires `DATABASE_URL` and validates pool/timeout overrides. Sprint 2.17 introduced the non-global `PersistenceModule`, opaque `TransactionManager`, tokens, and persistence-neutral contracts; Sprint 2.18 through Sprint 2.22 subsequently bound all five concrete repository adapters. Application feature modules now consume the domain-facing tokens but remain outside the root application module because no runtime caller is authorized. No raw Prisma provider, concrete repository, controller, or API is exported through this boundary.
 
 ## Transaction ownership
 
@@ -160,7 +178,13 @@ Submit-for-review atomically verifies concurrency/state/checksums, creates an im
 
 ### Taxonomy transactions
 
-Create, rename, reorder, reparent, hide, archive, restore, and Lesson-reassignment use cases atomically validate expected versions and the ADR-016 invariants, persist the resulting authoritative relationships/state, and append actor/time/reason/prior/resulting audit evidence. Ancestor unavailability changes descendant Effective Visibility without bulk-rewriting descendant states. Restoration revalidates current uniqueness, ancestry, and lifecycle rules. Lesson reassignment is limited to an active Topic in the Lesson's existing Category and does not rewrite published Revision or Reading Session history.
+Create, rename, reorder, reparent, archive, restore, and Lesson-reassignment use cases atomically validate expected versions and the ADR-016 invariants, persist the resulting authoritative relationships/state, and append actor/time/reason/prior/resulting audit evidence. Ancestor unavailability changes descendant Effective Visibility without bulk-rewriting descendant states. Restoration revalidates current uniqueness, ancestry, and lifecycle rules. Lesson reassignment is limited to an active Topic in the Lesson's existing Category and does not rewrite published Revision or Reading Session history.
+
+The Category row needed for a hierarchy mutation is locked through a single approved raw-query exception inside the taxonomy persistence adapter and a Prisma interactive transaction. The query uses bound values and static reviewed identifiers, returns only the Category identity/version needed for validation, and is unavailable to controllers, general services, or other repositories. The adapter validates the locked Category, expected `hierarchy_version`, and affected Topic versions before ancestor traversal, uniqueness revalidation, mutation, version increments, and append-only audit insertion in the same transaction. Provider errors map to stable persistence/domain errors; only recognized transaction failures receive bounded retries under the same command identity. Observability excludes SQL text, parameters, taxonomy names, identity data, and audit payloads.
+
+Taxonomy audit corrections use an immutable nullable predecessor link with one database-enforced direct successor maximum. The owning repository transaction validates that the predecessor is the current terminal record, is earlier, has the same effective target, and cannot create a cycle, then appends the correction atomically. A unique-conflict race between competing successors maps to one stable domain conflict; the winner commits and the loser leaves no partial audit state. No recursive trigger, stored procedure, or additional raw-query path is required.
+
+Migration-one Language data is governance-owned and read-only at runtime: there is no public or administrator mutation endpoint and no ordinary application credential path for create/update/delete. Future controlled changes require a reviewed governance decision, deterministic validation/collision assessment, and an approved migration or seed amendment preserving existing UUIDs. One shared backend domain/application component owns Language/tag/ISO mapping validation and taxonomy normalization for seeds, create, rename, reparent revalidation, imports, and future administration; repositories accept validated normalized values and still depend on database uniqueness.
 
 ### Privacy workflow transactions
 
@@ -178,11 +202,13 @@ The synchronization application service starts one transaction for duplicate-eve
 
 ## Migration and deployment boundary
 
-The Core API owns all Prisma Migrate history under the planned `services/core-api/prisma/` directory. Application runtime does not synchronize the schema. Production migration execution is a controlled deployment activity described in the [Database Overview](../07-database/database-overview.md), separate from ordinary Core API startup.
+The Core API owns all future Prisma Migrate history under `services/core-api/prisma/migrations/`. The directory does not yet exist. Application runtime does not synchronize the schema. Production migration execution is a controlled deployment activity described in the [Database Overview](../07-database/database-overview.md), separate from ordinary Core API startup.
 
 ## Database logic boundary
 
 Normal business workflows stay in application/domain services. PostgreSQL constraints enforce structural integrity and transactional consistency. Views support bounded read concerns. Stored procedures and triggers are exceptional and require the evidence and restrictions in the Database Overview; they must not replace normal reading, progress, lesson, streak, synchronization, or publication services.
+
+Raw SQL is prohibited except for a separately reviewed persistence primitive that Prisma cannot safely express. Migration one approves only the taxonomy Category-row lock described above. It does not authorize unrestricted raw reads/writes, dynamic identifiers, interpolation, broad column selection, controller/service access, diagnostic queries, or logging query payloads. The exception requires dedicated code review and integration tests for concurrent reparenting, stale versions, wrong-Category locks, deadlock/retry boundaries, rollback, uniqueness revalidation, and mutation/version/audit atomicity.
 
 ## Testing expectations
 
@@ -194,6 +220,10 @@ Future implementation must test:
 - stale-draft conflict handling, active-Variant/draft uniqueness, concurrent publication, revision-number allocation, immutable Revision mapping, and publication state/audit atomicity;
 - server-derived actor context, capability and default self-approval denial, Service Actor restrictions, changed-submission conflicts, immutable/superseding audit behavior, one-record-per-Revision publication, and visibility compensation;
 - normalized Category and sibling Topic uniqueness, same-Category parenting/reassignment, root and deep hierarchy traversal, direct/indirect cycle rejection, stale concurrent reparenting, subtree preservation, lifecycle-derived Effective Visibility, restoration conflicts, audit atomicity, and prohibited destructive cascades;
+- the Category-row locking exception, including parameterization/static identifiers, minimal returned columns, wrong-Category rejection, stale Category/Topic versions, bounded recognized retries, retry exhaustion, rollback, and absence of SQL values/audit payloads from logs;
+- shared Language/taxonomy normalization and validation across seed, create, rename, reparent revalidation, import, and future administration, including BCP 47/ISO mappings and collision behavior;
+- actor-principal idempotent provisioning without labels/direct identifiers/provider subjects, immutable UUID preservation, no public endpoint, and future linkage through separate mappings;
+- correction chains with zero, one, and multiple sequential corrections; branch, concurrent-successor, self, cross-target, cycle, stale-terminal, rollback, atomicity, retrieval, and predecessor-immutability cases;
 - account-request verification, deactivation/session revocation, late-sync rejection, identity/activity detachment, anonymization consistency and retry, Retention Holds, purge eligibility, prohibited cascades, restricted Privacy Action access, privacy-safe logging, and backup-restore tombstone reapplication;
 - deterministic multilingual profile fixtures, ordered blocks, contiguous Reading Positions, exact span reconstruction, word counts, audio alignment references, canonical Package Checksum inclusions/exclusions, Asset Checksum failures, and unsupported schema/block/profile behavior;
 - migration application on clean and supported existing schemas;
@@ -201,16 +231,16 @@ Future implementation must test:
 - safe translation of database errors; and
 - architectural boundaries that prevent Prisma imports in controllers and domain code.
 
-No test tooling is added by this documentation task.
+Sprint 2.2 adds focused configuration, lifecycle, and Nest dependency-injection tests for the Prisma skeleton. Database integration, repository, transaction, migration, and domain tests remain future physical-schema work.
 
 ## Remaining design work
 
 The [Synchronization Service Design](./sync-service.md) defines the later sync application boundary and shared per-event outcomes. The [shared JSON Schemas](../../packages/shared-contracts/README.md) define specification-only package, sync, and error shapes.
 
-- Exact Prisma version, connection pooling, schema naming, adapter placement, and transaction-context API.
-- PostgreSQL extensions, raw SQL escape-hatch governance, migration drift tooling, and test-database strategy.
+- Physical schema naming/mapping and the application-owned transaction-context API. The exact Prisma version, base adapter placement, and connection pool are now implemented.
+- PostgreSQL extensions, raw SQL beyond the approved taxonomy Category-lock exception, migration drift tooling, and test-database strategy.
 - Deferred AG-002 through AG-006 implementation details such as concurrency/locking, Language-specific tokenization, package delivery, authentication/RBAC library, actor/identity-activity mapping, taxonomy optimization, anonymization/tombstones, retention automation, snapshots, review-note retention, and audit-query access.
 - Authentication/session design, authorization matrix, API error envelope, observability, and broader module boundaries.
 - Object/file storage, lesson-package delivery, and synchronization service design.
 
-These details do not reopen the ORM selection. Architecture Gate 001 no longer prohibits database implementation; formal Sprint 2 start and the applicable [Sprint 2 Entry Checklist](../reviews/SPRINT-2-ENTRY-CHECKLIST.md) prerequisites still apply.
+These details do not reopen the ORM selection. Architecture Gate 001 and Sprint 2.9 technical amendment verification are satisfied, but all five human approvals and the [First Migration Checklist](../reviews/FIRST-MIGRATION-CHECKLIST.md) still prohibit physical implementation.

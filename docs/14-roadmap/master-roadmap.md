@@ -4,28 +4,28 @@
 
 ## Project information
 
-| Item                | Value                                                                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Project             | Prolific                                                                                                                                |
-| Tagline             | Read. Learn. Grow.                                                                                                                      |
-| Mission             | Build South Africa's leading knowledge and reading fluency platform.                                                                    |
-| Platform components | Flutter mobile application; core backend API; PostgreSQL database; content engine; admin dashboard; offline synchronization platform    |
-| Current status      | Sprint 1 architecture complete with `PASS WITH CONDITIONS`; Docker/PostgreSQL runtime health must be re-verified before Sprint 2 starts |
+| Item                | Value                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Project             | Prolific                                                                                                                             |
+| Tagline             | Read. Learn. Grow.                                                                                                                   |
+| Mission             | Build South Africa's leading knowledge and reading fluency platform.                                                                 |
+| Platform components | Flutter mobile application; core backend API; PostgreSQL database; content engine; admin dashboard; offline synchronization platform |
+| Current status      | Sprint 2.29 Topic mutation implemented; final disposable revalidation pending and hierarchy remains blocked                          |
 
 ## Progress dashboard
 
 | Measure              | Current state                                                                                                                           |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Current milestone    | Milestone 2 - Backend Foundation (architecture-ready; entry condition open)                                                             |
-| Current sprint       | No active sprint; Sprint 2 is not started                                                                                               |
+| Current milestone    | Milestone 2 - Backend Foundation (in progress)                                                                                          |
+| Current sprint       | Sprint 2 - Database and Backend Foundation; started 2026-07-17                                                                          |
 | Overall progress     | 2 of 13 sprints complete (approximately 15% by sprint count)                                                                            |
 | Completed milestones | 1 of 9                                                                                                                                  |
-| Current blockers     | Re-verify Docker/PostgreSQL and clear the legacy OneDrive Dart language server before Sprint 2 start; then complete migration decisions |
-| Upcoming sprint      | Sprint 2 - Database and Backend Foundation                                                                                              |
+| Current blockers     | Governed hierarchy, authentication/authorization, seeds, APIs, additional migrations, deployment, and Flutter remain gated              |
+| Upcoming sprint      | Sprint 3 - Core Content Read API                                                                                                        |
 | Risk level           | Medium because physical persistence, privacy/legal, mobile package, and later sync decisions remain intentionally deferred              |
 | Repository status    | Monorepo scaffold complete on `main`; CI configured                                                                                     |
-| Environment status   | Prolific Flutter/Android/Node baseline verified; Docker runtime and one unrelated legacy OneDrive Dart process require re-verification  |
-| Documentation status | Sprint 1 `PASS WITH CONDITIONS`; architecture/contracts complete or formally re-scoped                                                  |
+| Environment status   | Cleared: Docker/PostgreSQL healthy on `desktop-linux`; Flutter/Dart resolve under `C:\Development\flutter`; no legacy process reference |
+| Documentation status | Sprint 2.29 narrow Topic contract, atomic mutation, relationship/order preservation, DI, rollback, and review complete                  |
 
 Progress is based on completed sprints, not elapsed time or effort. Sprint acceptance and exit criteria determine completion.
 
@@ -39,17 +39,17 @@ Content generation in Sprint 10 means a controlled scripting/import workflow tha
 
 ## Roadmap at a glance
 
-| Milestone                    | Sprints | Status               | Outcome                                                                |
-| ---------------------------- | ------- | -------------------- | ---------------------------------------------------------------------- |
-| 1. Planning and Architecture | 0-1     | Completed            | Approved foundation, contracts, and implementation sequence            |
-| 2. Backend Foundation        | 2-3     | Ready with condition | PostgreSQL-backed core API and controlled lesson read workflow         |
-| 3. Mobile Foundation         | 4-5     | Planned              | Navigable Flutter shell and durable offline lesson access              |
-| 4. Reading Engine            | 6-7     | Planned              | Tutorial, silent practice, sessions, and local progress                |
-| 5. Synchronization           | 8       | Planned              | Idempotent delayed synchronization and conflict handling               |
-| 6. Administration            | 9       | Planned              | Authorized review and publishing operations                            |
-| 7. Content Engine            | 10      | Planned              | Validated draft ingestion and content preparation                      |
-| 8. Polish                    | 11      | Planned              | Security, accessibility, reliability, performance, and release quality |
-| 9. MVP Release               | 12      | Planned              | Production deployment and supported launch                             |
+| Milestone                    | Sprints | Status      | Outcome                                                                |
+| ---------------------------- | ------- | ----------- | ---------------------------------------------------------------------- |
+| 1. Planning and Architecture | 0-1     | Completed   | Approved foundation, contracts, and implementation sequence            |
+| 2. Backend Foundation        | 2-3     | In progress | PostgreSQL-backed core API and controlled lesson read workflow         |
+| 3. Mobile Foundation         | 4-5     | Planned     | Navigable Flutter shell and durable offline lesson access              |
+| 4. Reading Engine            | 6-7     | Planned     | Tutorial, silent practice, sessions, and local progress                |
+| 5. Synchronization           | 8       | Planned     | Idempotent delayed synchronization and conflict handling               |
+| 6. Administration            | 9       | Planned     | Authorized review and publishing operations                            |
+| 7. Content Engine            | 10      | Planned     | Validated draft ingestion and content preparation                      |
+| 8. Polish                    | 11      | Planned     | Security, accessibility, reliability, performance, and release quality |
+| 9. MVP Release               | 12      | Planned     | Production deployment and supported launch                             |
 
 ---
 
@@ -146,7 +146,7 @@ Sprint 1 validated Draft 2020-12 schemas and embedded examples without generatin
 
 ## Milestone 2 - Backend Foundation
 
-**Status:** Planned
+**Status:** In progress; Sprint 2 started 2026-07-17
 
 ### Objective
 
@@ -176,7 +176,7 @@ Provides the authoritative content and progress platform on which offline mobile
 
 ### Sprint 2 - Database and Backend Foundation
 
-**Status:** Architecture-ready; not started. Formal start requires Docker/PostgreSQL health re-verification and remains subject to the applicable [Sprint 2 Entry Checklist](../reviews/SPRINT-2-ENTRY-CHECKLIST.md) prerequisites.
+**Status:** Started 2026-07-17. Docker/PostgreSQL and legacy OneDrive process entry conditions are cleared. Sprint 2.2 through Sprint 2.16 established and froze the empty five-table [Foundation Baseline](../reviews/FOUNDATION-BASELINE.md). Sprint 2.17 through Sprint 2.22 implemented all five repository adapters, and Sprint 2.23 completed the [Persistence Layer Final Review](../reviews/PERSISTENCE-LAYER-FINAL-REVIEW.md). Sprint 2.24 through Sprint 2.26 implemented taxonomy queries, Sprint 2.27 implemented [Actor Principal Provisioning](../reviews/ACTOR-PROVISIONING-SERVICE-REVIEW.md), Sprint 2.28 implemented [Category Ordinary Mutation](../reviews/CATEGORY-MUTATION-SERVICE-REVIEW.md), and Sprint 2.29 implements [Topic Ordinary Mutation](../reviews/TOPIC-MUTATION-SERVICE-REVIEW.md) with a narrow atomic repository operation that preserves Category, parent, and display order. Governed reparenting, taxonomy-audit orchestration, seeds, APIs, authentication/authorization, additional migrations, deployment, and Flutter remain blocked or unimplemented.
 
 **Goal:** Establish migrations, persistence boundaries, foundational services, validation, and operational health endpoints.
 

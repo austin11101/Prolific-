@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 
 describe('AppModule', () => {
   it('compiles the Sprint 0 application module', async () => {

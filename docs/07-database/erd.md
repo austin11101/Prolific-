@@ -294,6 +294,123 @@ erDiagram
     }
 ```
 
+## Proposed physical design
+
+The conceptual diagram above remains the domain authority. The physical diagrams below are review proposals only. They do not represent current PostgreSQL objects or Prisma models. Full columns, actions, constraints, indexes, and deferrals are defined in the [First Physical Schema Proposal](./first-physical-schema-proposal.md).
+
+### Proposed first-migration foundation
+
+```mermaid
+erDiagram
+    CATEGORIES ||--o{ TOPICS : "owns"
+    TOPICS o|--o{ TOPICS : "same-category parent"
+    ACTOR_PRINCIPALS ||--o{ TAXONOMY_CHANGE_RECORDS : "performs"
+    CATEGORIES ||--o{ TAXONOMY_CHANGE_RECORDS : "category evidence"
+    TOPICS ||--o{ TAXONOMY_CHANGE_RECORDS : "topic evidence"
+    TAXONOMY_CHANGE_RECORDS o|--o| TAXONOMY_CHANGE_RECORDS : "linear correction successor"
+
+    ACTOR_PRINCIPALS {
+        uuid id PK
+        text actor_kind
+        timestamptz created_at
+    }
+    LANGUAGES {
+        uuid id PK
+        text bcp47_tag
+        text normalized_tag UK
+        text iso_language_basis
+        text canonical_name
+        text normalized_name UK
+        boolean is_content_enabled
+    }
+    CATEGORIES {
+        uuid id PK
+        text normalized_canonical_name
+        text lifecycle_state
+        integer lock_version
+        integer hierarchy_version
+    }
+    TOPICS {
+        uuid id PK
+        uuid category_id FK
+        uuid parent_topic_id FK
+        text normalized_canonical_name
+        text lifecycle_state
+        integer lock_version
+    }
+    TAXONOMY_CHANGE_RECORDS {
+        uuid id PK
+        uuid command_id UK
+        uuid actor_principal_id FK
+        uuid category_id FK
+        uuid topic_id FK
+        text operation
+        text reason_code
+        text previous_lifecycle_state
+        text resulting_lifecycle_state
+        uuid previous_parent_topic_id FK
+        uuid resulting_parent_topic_id FK
+        integer previous_version
+        integer resulting_version
+        uuid supersedes_change_record_id FK, UK
+        timestamptz occurred_at
+        timestamptz created_at
+    }
+```
+
+The Topic parent relationship is an adjacency list. A composite `(category_id, parent_topic_id)` foreign key enforces same-Category parenthood. Exactly one audit target FK is populated; target type is derived and no `target_type` is stored. The three audit Topic-parent/supersession references are restrictive and indexed. A nullable unique constraint on `supersedes_change_record_id` gives every record at most one direct successor, so corrections form a sequential same-target chain rather than a branch; repository logic validates the terminal predecessor and acyclicity atomically. FPSD-006 approves application-owned cycle prevention with repository-only writes, least-privilege database access, the narrowly governed taxonomy-adapter Category-row lock, hierarchy/Topic version checks, atomic audit/version changes, revalidation, and concurrent reparent tests. No trigger, closure, materialized-path, or nested-set table is required in migration one.
+
+### Deferred learner identity shell
+
+```mermaid
+flowchart LR
+    U["users"] --> P["user_preferences"]
+    U --> D["devices"]
+```
+
+FPSD-001 defers all three tables until authentication, account lifecycle, consent, safeguarding, device ownership, and anonymization policy are resolved. They are conceptual extension points, not migration-one objects.
+
+### Deferred lesson, editorial, and package tables
+
+```mermaid
+flowchart LR
+    T["topics"] --> L["lessons"]
+    L --> V["lesson_variants"]
+    V --> D["working_drafts + working_draft_blocks"]
+    D --> S["review_submissions"]
+    S --> Q["review_decisions"]
+    Q --> P["publication_records"]
+    P --> R["lesson_revisions"]
+    R --> B["lesson_content_blocks + reading_positions"]
+    R --> A["tutorial_audio_assets + alignment_entries"]
+    R --> C["content_sources + attributions"]
+    R --> M["offline_package_manifests + assets"]
+    R --> W["lesson_visibility_records"]
+```
+
+All nodes in this diagram are deferred. Publication atomically creates one immutable Revision and Publication Record from one exact approved unchanged Submission/Decision. Approval alone is not visibility, and withdrawal/archive never mutates Revision material.
+
+### Deferred activity, synchronization, and privacy tables
+
+```mermaid
+flowchart LR
+    U["users"] --> RS["reading_sessions"]
+    REV["lesson_revisions"] --> RS
+    RS --> RSE["reading_session_events"]
+    RS --> PE["progress_events"]
+    PE --> UP["user_progress projection"]
+    PE --> DS["daily_streaks projection"]
+    PE --> SR["sync_receipts"]
+    DEV["devices"] --> SR
+    U --> SC["sync_cursors"]
+    U --> DR["account_deletion_requests"]
+    DR --> PA["privacy_action_records"]
+    RH["retention_holds"] --> RHT["typed retention_hold_targets"]
+    PA --> AW["anonymization_work_items"]
+```
+
+These tables are deferred pending timing, sync reconciliation/cursor/retention, authentication, anonymization, legal retention, and Privacy approvals. Identity treatment must not change Reading Session or Lesson Revision identity.
+
 ## Persistence interpretation
 
 - `READING_SESSION_EVENTS` is justified as an append-only history candidate because tutorial/practice separation, pause/resume timing, completion evidence, and interruption recovery require chronology. Physical design may instead use a hybrid event/state representation if it preserves the same facts.
@@ -301,11 +418,11 @@ erDiagram
 - `ADMINISTRATIVE_ACTORS` and `SERVICE_ACTORS` show distinct security contexts and stable references. The ERD does not approve physical inheritance, polymorphic-key syntax, credential storage, or actor-profile snapshots.
 - Review notes and capability snapshots are required conceptually but omitted from the compact diagram; their restricted physical representation remains controlled design work.
 - One Publication Record creates exactly one Lesson Revision in the same transaction and references the exact approved Review Submission/Decision and checksums.
-- `CATEGORIES` and `TOPICS` have stable UUIDs and lifecycle states `draft`, `active`, `hidden`, or `archived`. Localized display names are conceptually required but their physical representation is deferred.
+- `CATEGORIES` and `TOPICS` have stable UUIDs and exactly two conceptual lifecycle values: `ACTIVE` and `ARCHIVED`. New rows default to `ACTIVE`; `DELETED`, hidden, and withdrawal are not taxonomy lifecycle states. Localized display names are conceptually required but their physical representation is deferred.
 - Every Topic belongs to exactly one Category; an optional parent belongs to that same Category. Cycle prevention and same-Category subtree reparenting require transactional validation against authoritative relationships.
-- Active Category canonical names are normalized-unique. Active Topic canonical names are normalized-unique within `(category_id, parent_topic_id)` sibling scope; exact normalization/collation is deferred.
+- Active Category canonical names are normalized-unique. Active Topic canonical names are normalized-unique within `(category_id, parent_topic_id)` sibling scope. FPSD-005 approves the comparison profile; TN-001 through TN-022 must become executable automated tests before taxonomy repository acceptance.
 - Taxonomy display order is explicit. Effective visibility, ancestry paths, and discovery eligibility may be projections, but they cannot authorize hierarchy mutation or replace lifecycle truth.
-- Referenced taxonomy is hidden or archived, never cascade-deleted. Taxonomy audit evidence for rename, reorder, reparent, state change, restoration, and Lesson reassignment is required conceptually but omitted from the compact diagram pending its physical mapping.
+- Referenced taxonomy is archived, never cascade-deleted. Archived ancestry removes Effective Visibility without rewriting descendants. Restoration revalidates uniqueness, parent validity, Category consistency, Effective Visibility, and concurrency. Taxonomy audit evidence for rename, reorder, reparent, state change, restoration, and Lesson reassignment is required conceptually.
 - `LESSON_VARIANTS` provides the stable Language/Difficulty stream. Conceptual uniqueness is one active Variant per Lesson, Language, and Difficulty unless a later ADR introduces parallel editions.
 - `WORKING_DRAFTS` represents zero or one active editable draft per Variant. Its concurrency token is conceptual; exact representation and whether drafts use a dedicated physical structure remain open.
 - `LESSON_REVISIONS` represents immutable published snapshots with UUID identity and a positive, monotonically allocated number unique within one Variant. The current-revision relationship is conceptual and must be efficient without making historical Revisions mutable.
@@ -323,28 +440,28 @@ erDiagram
 
 ## Concepts intentionally not represented as their own central tables
 
-| Concept                             | Reason                                                                                                                                                                                                   |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Guest Session                       | Temporary, non-account, non-synchronized context. Limited anonymous analytics may use a separate minimized telemetry identifier under privacy policy.                                                    |
-| User Preferences                    | Aggregate member/value set; physical embedding versus separate relation depends on access and evolution needs.                                                                                           |
-| Offline Lesson Package and Manifest | Immutable transport/file artifact/value object for one published Lesson Revision; not a central business record by default. A manifest record may be added only if delivery or audit access requires it. |
-| Outbox Event                        | Durable mobile-local queue record. It is not necessarily a server table; Progress Event and Sync Receipt represent the server-relevant concepts.                                                         |
-| Sync Request                        | Transport envelope only.                                                                                                                                                                                 |
-| Sync Cursor                         | Opaque client/server checkpoint; persistence location and lifecycle remain unresolved.                                                                                                                   |
-| Daily Streak                        | Part of/recomputed into User Progress read models; not automatically an independent table.                                                                                                               |
-| Approval Evidence                   | Evidentiary relationship/value object derived from exact approved Review Decision, Review Submission, checksums, actor, time, and authorization evidence.                                                |
-| Superseding Record                  | Corrective relationship between immutable audit records; physical representation may be a self-reference or typed companion structure.                                                                   |
-| Taxonomy localization and audit     | Required conceptual metadata/evidence; exact localized-name and append-only audit representation remains physical design work under ADR-016.                                                             |
+| Concept                             | Reason                                                                                                                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guest Session                       | Temporary, non-account, non-synchronized context. Limited anonymous analytics may use a separate minimized telemetry identifier under privacy policy.                                                       |
+| User Preferences                    | Deferred by FPSD-001 with the learner identity shell; the conceptual classification remains an aggregate member.                                                                                            |
+| Offline Lesson Package and Manifest | The package remains a transport artifact/value object. Deferred manifest/asset descriptor tables are proposed only to support deterministic reconstruction/delivery evidence; binary bytes remain external. |
+| Outbox Event                        | Durable mobile-local queue record. It is not necessarily a server table; Progress Event and Sync Receipt represent the server-relevant concepts.                                                            |
+| Sync Request                        | Transport envelope only.                                                                                                                                                                                    |
+| Sync Cursor                         | A deferred server-side table is proposed, but its opaque representation, expiry, and reset lifecycle remain unresolved.                                                                                     |
+| Daily Streak                        | A deferred rebuildable projection table is proposed only if the approved streak query/update workload justifies separate storage.                                                                           |
+| Approval Evidence                   | Evidentiary relationship/value object derived from exact approved Review Decision, Review Submission, checksums, actor, time, and authorization evidence.                                                   |
+| Superseding Record                  | Corrective relationship between immutable audit records; physical representation may be a self-reference or typed companion structure.                                                                      |
+| Taxonomy localization and audit     | Localization remains deferred; typed `taxonomy_change_records` are proposed in migration one because governed mutations require append-only evidence.                                                       |
 
-## Physical-design questions deferred
+## Physical-design questions still deferred
 
-- Prisma physical mapping and naming conventions. Prisma ORM and Prisma Migrate are approved by [ADR-012](../decisions/ADR-012-use-prisma-for-core-api-persistence.md).
+- The first five-table Prisma/PostgreSQL mapping is human-approved in the [First Physical Schema Approval](../reviews/FIRST-PHYSICAL-SCHEMA-APPROVAL.md). Prisma schema implementation is authorized; migration generation/execution remains separately gated. Later physical mappings in this ERD remain deferred.
 - Exact Working Draft concurrency-token representation, physical storage, and locking strategy. Variant uniqueness, one active draft, Variant-scoped revision numbering, atomic publication, and immutable Revisions are approved by [ADR-013](../decisions/ADR-013-use-lesson-variants-and-immutable-revisions.md).
 - Exact revision-number allocation query and current-published-revision access implementation.
 - Physical JSON-versus-relational mapping for blocks, positions, and alignment; exact Language-specific tokenizer rules; and exact canonical-JSON library. Their conceptual boundary is approved by [ADR-014](../decisions/ADR-014-use-structured-content-blocks-and-revision-packages.md).
 - Package archive/layout, compression, delivery, asset storage, and compatibility-window mechanics.
 - Exact actor-table/inheritance/reference mapping, permitted minimal profile snapshots, role/capability persistence, restricted review-note storage, and superseding-record mapping. Their conceptual boundary is approved by [ADR-015](../decisions/ADR-015-persist-editorial-workflow-and-admin-actor-audit.md).
-- Exact taxonomy normalization/collation, localization storage, ordering allocation, recursive-query or materialized-ancestry strategy, hierarchy concurrency token, projection refresh, and never-referenced draft purge. The conceptual hierarchy/lifecycle boundary is approved by [ADR-016](../decisions/ADR-016-use-category-and-hierarchical-topic-taxonomy.md).
+- Taxonomy localization storage, ordering allocation, optional recursive-query/materialized-ancestry projections, projection refresh, and never-referenced temporary-data treatment. Normalization, cycle prevention, `ACTIVE`/`ARCHIVED` lifecycle semantics, and conceptual privilege separation are approved by FPSD-005/FPSD-006/FPSD-013/FPSD-014.
 - Local database schema, outbox transaction design, and Sync Cursor storage.
 - Exact identity/activity detachment, Privacy Action Record/Retention Hold mapping, anonymization implementation, deletion tombstones, and backup-restore reapplication mechanics within [ADR-017](../decisions/ADR-017-use-history-safe-deletion-and-anonymization.md).
 - Multi-device ordering/reconciliation and idempotency-retention periods.

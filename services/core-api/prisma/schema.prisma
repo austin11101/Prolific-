@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/infrastructure/persistence/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// UUID primary keys and command identities intentionally have no database defaults; approved UUIDv4 values are application-generated.
+
+enum TaxonomyLifecycleState {
+  ACTIVE   @map("active")
+  ARCHIVED @map("archived")
+
+  @@map("taxonomy_lifecycle_state")
+}
+
+model ActorPrincipal {
+  id        String   @id(map: "pk__actor_principals") @map("id") @db.Uuid
+  actorKind String   @map("actor_kind") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  taxonomyChangeRecords TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordActor")
+
+  // Implemented in migration SQL after schema approval. CHECK actor_kind IN ('administrative', 'service', 'system').
+  @@map("actor_principals")
+}
+
+model Language {
+  id               String    @id(map: "pk__languages") @map("id") @db.Uuid
+  bcp47Tag         String    @map("bcp47_tag") @db.Text
+  normalizedTag    String    @unique(map: "uq__languages__normalized_tag") @map("normalized_tag") @db.Text
+  isoLanguageBasis String    @map("iso_language_basis") @db.Text
+  canonicalName    String    @map("canonical_name") @db.Text
+  normalizedName   String    @unique(map: "uq__languages__normalized_name") @map("normalized_name") @db.Text
+  displayOrder     Int       @map("display_order") @db.Integer
+  isContentEnabled Boolean   @default(true) @map("is_content_enabled")
+  retiredAt        DateTime? @map("retired_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Implemented in migration SQL after schema approval. Explicit PostgreSQL "C" collation on normalized_tag and normalized_name.
+  // Implemented in migration SQL after schema approval. Six CHECK constraints for non-blank tags/names, non-negative display_order, and retirement/content consistency.
+  @@index([isContentEnabled, displayOrder, id], map: "ix__languages__content_order")
+  @@map("languages")
+}
+
+model Category {
+  id                      String                 @id(map: "pk__categories") @map("id") @db.Uuid
+  canonicalName           String                 @map("canonical_name") @db.Text
+  normalizedCanonicalName String                 @map("normalized_canonical_name") @db.Text
+  lifecycleState          TaxonomyLifecycleState @default(ACTIVE) @map("lifecycle_state")
+  displayOrder            Int                    @map("display_order") @db.Integer
+  iconKey                 String?                @map("icon_key") @db.Text
+  lockVersion             Int                    @default(1) @map("lock_version") @db.Integer
+  hierarchyVersion        Int                    @default(1) @map("hierarchy_version") @db.Integer
+  archivedAt              DateTime?              @map("archived_at") @db.Timestamptz(6)
+  createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+  topics                  Topic[]                @relation("CategoryTopics")
+  taxonomyChangeRecords   TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordCategoryTarget")
+
+  // Implemented in migration SQL after schema approval. Partial unique index uq__categories__active_name on normalized_canonical_name for ACTIVE rows.
+  // Implemented in migration SQL after schema approval. Explicit PostgreSQL "C" collation on normalized_canonical_name.
+  // Implemented in migration SQL after schema approval. Six CHECK constraints for non-blank names, non-negative order, positive versions, and lifecycle/timestamp consistency.
+  @@index([lifecycleState, displayOrder, id], map: "ix__categories__discovery_order")
+  @@map("categories")
+}
+
+model Topic {
+  id                      String                 @id(map: "pk__topics") @map("id") @db.Uuid
+  categoryId              String                 @map("category_id") @db.Uuid
+  parentTopicId           String?                @map("parent_topic_id") @db.Uuid
+  canonicalName           String                 @map("canonical_name") @db.Text
+  normalizedCanonicalName String                 @map("normalized_canonical_name") @db.Text
+  lifecycleState          TaxonomyLifecycleState @default(ACTIVE) @map("lifecycle_state")
+  displayOrder            Int                    @map("display_order") @db.Integer
+  lockVersion             Int                    @default(1) @map("lock_version") @db.Integer
+  archivedAt              DateTime?              @map("archived_at") @db.Timestamptz(6)
+  createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  category    Category @relation("CategoryTopics", fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__topics__category_id__categories")
+  parentTopic Topic?   @relation("TopicHierarchy", fields: [categoryId, parentTopicId], references: [categoryId, id], onDelete: Restrict, onUpdate: NoAction, map: "fk__topics__category_id_parent_topic_id__topics")
+  childTopics Topic[]  @relation("TopicHierarchy")
+
+  targetedChangeRecords        TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordTopicTarget")
+  previousParentChangeRecords  TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordPreviousParent")
+  resultingParentChangeRecords TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordResultingParent")
+
+  // Implemented in migration SQL after schema approval. Partial unique index uq__topics__active_root_name for ACTIVE root siblings.
+  // Implemented in migration SQL after schema approval. Partial unique index uq__topics__active_child_name for ACTIVE non-root siblings.
+  // Implemented in migration SQL after schema approval. Explicit PostgreSQL "C" collation on normalized_canonical_name.
+  // Implemented in migration SQL after schema approval. Six CHECK constraints for non-blank names, non-negative order, positive lock_version, lifecycle/timestamp consistency, and no self-parent.
+  @@unique([categoryId, id], map: "uq__topics__category_identity")
+  @@index([categoryId, parentTopicId, displayOrder, id], map: "ix__topics__parent_order")
+  @@index([parentTopicId], map: "ix__topics__parent")
+  @@map("topics")
+}
+
+model TaxonomyChangeRecord {
+  id                       String   @id(map: "pk__taxonomy_change_records") @map("id") @db.Uuid
+  commandId                String   @unique(map: "uq__taxonomy_change_records__command_id") @map("command_id") @db.Uuid
+  actorPrincipalId         String   @map("actor_principal_id") @db.Uuid
+  categoryId               String?  @map("category_id") @db.Uuid
+  topicId                  String?  @map("topic_id") @db.Uuid
+  operation                String   @map("operation") @db.Text
+  reasonCode               String   @map("reason_code") @db.Text
+  previousLifecycleState   String?  @map("previous_lifecycle_state") @db.Text
+  resultingLifecycleState  String?  @map("resulting_lifecycle_state") @db.Text
+  previousParentTopicId    String?  @map("previous_parent_topic_id") @db.Uuid
+  resultingParentTopicId   String?  @map("resulting_parent_topic_id") @db.Uuid
+  previousVersion          Int?     @map("previous_version") @db.Integer
+  resultingVersion         Int      @map("resulting_version") @db.Integer
+  supersedesChangeRecordId String?  @unique(map: "uq__taxonomy_change_records__supersedes") @map("supersedes_change_record_id") @db.Uuid
+  occurredAt               DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // The shortened actor_id and supersede FK-name segments keep approved deterministic names within PostgreSQL's 63-byte identifier limit.
+  actorPrincipal         ActorPrincipal        @relation("TaxonomyChangeRecordActor", fields: [actorPrincipalId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__actor_id__actor_principals")
+  category               Category?             @relation("TaxonomyChangeRecordCategoryTarget", fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__category_id__categories")
+  topic                  Topic?                @relation("TaxonomyChangeRecordTopicTarget", fields: [topicId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__topic_id__topics")
+  previousParent         Topic?                @relation("TaxonomyChangeRecordPreviousParent", fields: [previousParentTopicId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__previous_parent_topic_id__topics")
+  resultingParent        Topic?                @relation("TaxonomyChangeRecordResultingParent", fields: [resultingParentTopicId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__resulting_parent_topic_id__topics")
+  supersedesChangeRecord TaxonomyChangeRecord? @relation("TaxonomyChangeRecordSupersession", fields: [supersedesChangeRecordId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__taxonomy_change_records__supersede__taxonomy_change_records")
+  successorChangeRecord  TaxonomyChangeRecord? @relation("TaxonomyChangeRecordSupersession")
+
+  // Implemented in migration SQL after schema approval. Seven CHECK constraints for exactly-one target, operation/target compatibility, reason-code shape, lifecycle applicability, parent applicability/change, version progression, and no self-supersession.
+  // Implemented transactionally by the future repository: terminal predecessor, earlier record, same target, acyclicity, and atomic correction insertion.
+  @@index([categoryId, occurredAt(sort: Desc), id], map: "ix__taxonomy_change_records__category_time")
+  @@index([topicId, occurredAt(sort: Desc), id], map: "ix__taxonomy_change_records__topic_time")
+  @@index([actorPrincipalId, occurredAt(sort: Desc), id], map: "ix__taxonomy_change_records__actor_time")
+  @@index([previousParentTopicId], map: "ix__taxonomy_change_records__previous_parent")
+  @@index([resultingParentTopicId], map: "ix__taxonomy_change_records__resulting_parent")
+  @@map("taxonomy_change_records")
+}

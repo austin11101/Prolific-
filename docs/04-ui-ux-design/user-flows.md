@@ -166,7 +166,7 @@ Help the learner find an eligible lesson by language, topic, and difficulty and 
 ### Empty and error states
 
 - No eligible lessons for the chosen language or topic.
-- A Category or ancestor Topic becomes hidden or archived while browsing; refresh returns to the nearest still-eligible level without exposing internal state.
+- A Category or ancestor Topic becomes archived while browsing; refresh returns to the nearest still-eligible level without exposing internal state.
 - No verified downloads while offline.
 - Catalog request failed, with a retry action that does not block access to downloads.
 - Lesson metadata is available but its package is incomplete, outdated, or corrupted.

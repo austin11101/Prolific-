@@ -161,9 +161,11 @@ Rules:
 
 - Category and Topic resources use stable UUIDs, explicit lifecycle state, Canonical Taxonomy Name, localized display metadata when available, and deterministic display order.
 - Topic representations expose `categoryId`, nullable `parentTopicId`, and sufficient ancestry/breadcrumb data for navigation without requiring clients to assume a fixed maximum depth. The launch UI normally presents no more than three visible levels.
-- Learner catalog responses include only taxonomy with Effective Visibility and published eligible content; `draft`, `hidden`, `archived`, or ancestor-ineligible taxonomy is excluded.
-- Administrative taxonomy mutations are explicit create/update/hide/archive/restore/reparent/reassign commands with authenticated server actor context and optimistic concurrency. Request bodies never supply trusted actor identity.
+- Learner catalog responses include only `ACTIVE` taxonomy with Effective Visibility and published eligible content; `ARCHIVED` or ancestor-ineligible taxonomy is excluded.
+- Administrative taxonomy mutations are explicit create/update/archive/restore/reparent/reassign commands with authenticated server actor context and optimistic concurrency. Request bodies never supply trusted actor identity.
 - Reparenting is same-Category only, moves the complete subtree, rejects direct or indirect cycles, and returns a conflict for stale hierarchy state or scoped-name collision. Cross-Category moves and destructive taxonomy `DELETE` operations are not part of the approved contract.
+- Migration one defines no public or administrator Language create/update/delete endpoint. Language reference-data changes require a reviewed governance decision and approved seed/migration amendment preserving UUID identity.
+- `actor_principals` have no public provisioning endpoint; their controlled backend provisioning command accepts no arbitrary label, direct identifier, provider subject, or identity payload.
 - Exact routes, DTO fields, ancestry encoding, localization representation, and error codes remain unfrozen until the physical/API design is reviewed; these expectations do not create an API implementation.
 
 ### Privacy and deletion contract expectations
@@ -608,21 +610,23 @@ No endpoint is required to check an event before submitting it; safely retrying 
 
 ### Representative administrative operations
 
-| Operation                             | Purpose                                                                                                 |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| List administrative content           | List Lessons, Variants, Working Drafts, and Revisions visible to the authorized role.                   |
-| Create Lesson                         | Create stable educational identity without learner-facing content.                                      |
-| Create Lesson Variant                 | Create one unique Language/Difficulty stream.                                                           |
-| Create or update Working Draft        | Save permitted editable fields with validation and expected-version concurrency control.                |
-| Submit/request changes/reject/approve | Create immutable Review Submission/Decision evidence against exact content without creating a Revision. |
-| Publish Lesson Revision               | Atomically create the next immutable Revision and switch Current Published Revision.                    |
-| Archive Lesson Variant                | Remove the Variant from new discovery while preserving Revision/session history.                        |
-| Withdraw Lesson Revision              | Append restricted evidence and remove exact published content from discovery without mutation.          |
-| Restore Lesson Publication            | Append a permitted restoration record without rewriting original publication history.                   |
-| List audit events                     | List paginated audit evidence under restricted authorization.                                           |
-| Ingest draft content                  | Create or update a Working Draft; no approval or publication action exists for the service identity.    |
+| Operation                             | Purpose                                                                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| List administrative content           | List Lessons, Variants, Working Drafts, and Revisions visible to the authorized role.                                      |
+| Create Lesson                         | Create stable educational identity without learner-facing content.                                                         |
+| Create Lesson Variant                 | Create one unique Language/Difficulty stream.                                                                              |
+| Create or update Working Draft        | Save permitted editable fields with validation and expected-version concurrency control.                                   |
+| Submit/request changes/reject/approve | Create immutable Review Submission/Decision evidence against exact content without creating a Revision.                    |
+| Publish Lesson Revision               | Atomically create the next immutable Revision and switch Current Published Revision.                                       |
+| Archive Lesson Variant                | Remove the Variant from new discovery while preserving Revision/session history.                                           |
+| Withdraw Lesson Revision              | Append restricted evidence and remove exact published content from discovery without mutation.                             |
+| Restore Lesson Publication            | Append a permitted restoration record without rewriting original publication history.                                      |
+| List audit events                     | Future-only paginated audit access under an explicitly reviewed operational/governance capability; unavailable by default. |
+| Ingest draft content                  | Create or update a Working Draft; no approval or publication action exists for the service identity.                       |
 
 Exact administrative endpoint paths remain pending OpenAPI and authorization review. Published Revisions are created by publication and are not updated through ordinary `PATCH` operations.
+
+`taxonomy_change_records` is restricted operational audit data and has no public, learner, anonymous, ordinary content-read, or general operational-reader endpoint. Any future audit query/export contract requires separate authorization review, returns only purpose-limited fields, and never exposes unrestricted narrative, request/response bodies, identity labels, command IDs outside their approved operational scope, or arbitrary metadata.
 
 The Content Author, Content Reviewer, Publisher, and Platform Administrator capability boundary and default separation policy are approved by ADR-015. Exact provider/RBAC library, assigned production principals, and self-approval exception configuration remain open. Only published, non-withdrawn eligible Lesson Revisions are learner-visible.
 

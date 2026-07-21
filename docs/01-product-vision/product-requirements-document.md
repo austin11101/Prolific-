@@ -195,7 +195,7 @@ Requirement identifiers are stable references for planning. Detailed transport a
 
 **Outputs:** Ordered category options that lead to eligible topics or lessons.
 
-**Business rules:** A Category is a stable broad knowledge grouping, not a Lesson. Guests and registered learners may browse only Categories with Effective Visibility and eligible published content. Draft, hidden, archived, or ancestor-ineligible taxonomy is excluded. Rename, reorder, hide, archive, and restore preserve stable identity and history.
+**Business rules:** A Category is a stable broad knowledge grouping, not a Lesson. Guests and registered learners may browse only `ACTIVE` Categories with Effective Visibility and eligible published content. `ARCHIVED` or ancestor-ineligible taxonomy is excluded. Rename, reorder, archive, and restore preserve stable identity and history.
 
 **Validations:** Stable UUID, Canonical Taxonomy Name, localized display name, deterministic ordering, active normalized-name uniqueness, valid lifecycle, and no unauthorized status override.
 
@@ -213,7 +213,7 @@ Requirement identifiers are stable references for planning. Detailed transport a
 
 **Validations:** Stable UUID, same-Category parent, no direct or indirect cycle, active sibling-name uniqueness after approved normalization, valid lifecycle, language availability, and deterministic ordering/pagination.
 
-**Edge cases:** Topic has no current published lessons; parent is hidden/archived; hierarchy changes during browsing; missing localization; stale cursor; duplicate items; network failure.
+**Edge cases:** Topic has no current published lessons; parent is archived; hierarchy changes during browsing; missing localization; stale cursor; duplicate items; network failure.
 
 **Acceptance criteria:** Nested Topics navigate without a fixed-depth client assumption; only effectively visible ancestry and eligible lessons are returned; failures preserve access to verified downloads.
 
