@@ -1,0 +1,1 @@
+export const LESSON_QUERY_SERVICE = Symbol('LESSON_QUERY_SERVICE');

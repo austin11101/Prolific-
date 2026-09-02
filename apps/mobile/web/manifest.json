@@ -1,0 +1,11 @@
+{
+  "name": "Prolific",
+  "short_name": "Prolific",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FFFBFE",
+  "theme_color": "#176B51",
+  "description": "Build reading confidence while discovering useful knowledge.",
+  "orientation": "any",
+  "prefer_related_applications": false
+}

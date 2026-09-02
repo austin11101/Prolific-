@@ -6,6 +6,12 @@ This document defines the learner-facing flows required for the Prolific MVP. It
 
 The flows are based on `AGENTS.md` and `docs/02-requirements/mvp-scope.md`. Where those documents leave policy unresolved, this document names the dependency instead of inventing a decision.
 
+## Sprint 3.1 presentation implementation
+
+The first local-only learner entry flow is implemented as `Splash -> Welcome -> Access Choice -> Home -> Topic Discovery`. A guest may enter Home; Sign In and Create Free Account now route to local presentation forms with validation, but they do not connect to an authentication provider, store credentials, issue tokens, or claim durable account access. Home and Topic Discovery use deterministic preview data, make no availability claim, and do not save guest activity. See the [Flutter UI Foundation Review](../reviews/FLUTTER-UI-FOUNDATION-REVIEW.md).
+
+Sprint 3.2W extends the same presentation code to Web. Topic selection continues through local Topic Details, Language, Difficulty, Pace, and Lesson Preview screens. Sprint 3.7 replaces the final placeholder with a responsive Reading Player shell. Sprint 3.8 adds one bundled local MP3 sample for tutorial playback. Highlighting remains manual and independent from audio; the app still does not advance by WPM, consume alignment, save progress, or complete a real session. Compact layouts stack metadata and reading content; expanded layouts retain learner navigation, constrain line width, and place metadata beside the reading surface. See the [Flutter Web Foundation Review](../reviews/FLUTTER-WEB-FOUNDATION-REVIEW.md), [Reading Player Shell Review](../reviews/FLUTTER-READING-PLAYER-SHELL-REVIEW.md), and [Local Tutorial Audio Playback Review](../reviews/LOCAL-TUTORIAL-AUDIO-PLAYBACK-FOUNDATION.md).
+
 ## Experience Principles
 
 All MVP flows must follow these principles:

@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'app/app.dart';
+
 void main() {
-  runApp(const MainApp());
+  runApp(const ProlificApp());
 }
 
-class MainApp extends StatelessWidget {
+/// Backwards-compatible root name retained for existing embedder and smoke tests.
+class MainApp extends ProlificApp {
   const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(body: Center(child: Text('Hello World!'))),
-    );
-  }
 }

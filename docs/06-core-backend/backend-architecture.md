@@ -196,6 +196,19 @@ Privacy workflows use server-derived identity, least-privilege authorization, id
 
 Application services coordinate deterministic Content Block validation, Language-specific Tokenization Profile/version selection, Reading Unit/Position generation, word-count validation, tutorial Alignment Profile/version validation, canonical manifest assembly, and SHA-256 computation. Infrastructure adapters provide binary asset reads/writes, canonical serialization, and storage transport. Domain/application rules reject unsupported blocks, non-contiguous positions, invalid spans, identity mismatches, missing attribution, and checksum mismatches. Controllers return descriptors or authorized transport references; they do not assemble packages or expose storage credentials.
 
+Tutorial speech synthesis is an external content-preparation concern behind a
+provider-neutral boundary; it is not a Core API controller, repository, or database
+responsibility. Publication may accept only verified artifacts bound to the exact
+approved Revision, provider/voice provenance, checksums, and reviewed alignment.
+Neither the backend nor Flutter may substitute unsupported languages. Current gTTS
+coverage is English-only for the launch set, and provider selection plus word-level
+alignment remain proposed in [ADR-018](../decisions/ADR-018-tutorial-speech-provider-strategy.md).
+
+Sprint 3.6 implemented Azure only inside the standalone content-preparation service.
+It did not add a NestJS dependency, endpoint, job, repository, or database record.
+Live proof evidence and production provider approval remain blocked; see the
+[Azure TTS evaluation](../reviews/AZURE-TTS-PROOF-AND-MULTILINGUAL-EVALUATION.md).
+
 ### Process synchronization event
 
 The synchronization application service starts one transaction for duplicate-event detection, accepted progress application, Sync Receipt creation, and required projection updates. A stable event ID and unique receipt boundary ensure a retry does not create a second Reading Session or duplicate progress.

@@ -84,6 +84,27 @@ The package contains:
 
 The package stores the local-playable audio file. Alignment is precomputed and references immutable Reading Positions; silent practice uses those positions without playing audio.
 
+Audio generation is provider-neutral and occurs before package assembly. The package
+must identify the immutable asset and approved alignment, not expose provider
+credentials, temporary generation paths, or cause Flutter to call a synthesis
+provider. gTTS is currently English-only for the approved launch set and supplies no
+word timestamps. isiZulu and Sepedi must never be substituted with another language.
+The provider, voice/engine identity, source language, asset checksum, and reviewed
+timing provenance require approval before production packaging. Flutter audio
+integration remains blocked by [ADR-018](../decisions/ADR-018-tutorial-speech-provider-strategy.md).
+
+Sprint 3.6 added provider-specific Azure word-boundary proof output, but no live
+alignment evidence exists because credentials were unavailable. Such output must not
+be packaged as canonical Reading Positions until its mapping, checksums, and human
+review are separately approved. See the
+[Azure TTS evaluation](../reviews/AZURE-TTS-PROOF-AND-MULTILINGUAL-EVALUATION.md).
+
+Sprint 3.8 copies one proof MP3 into Flutter assets for local playback
+demonstration only. That asset is not an Offline Lesson Package member, package
+checksum input, downloadable file, revision-bound asset, or synchronization
+artifact. Future offline packaging must still define immutable audio identity,
+checksums, storage layout, and alignment review separately.
+
 ### Attribution
 
 Learner/offline attribution includes, where applicable:

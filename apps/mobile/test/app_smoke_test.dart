@@ -2,9 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:prolific_mobile/main.dart';
 
 void main() {
-  testWidgets('Sprint 0 app scaffold starts', (tester) async {
+  testWidgets('app starts with local Prolific splash presentation', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MainApp());
 
-    expect(find.text('Hello World!'), findsOneWidget);
+    expect(find.text('Prolific'), findsOneWidget);
+    expect(find.text('Read. Learn. Grow.'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome to Prolific'), findsOneWidget);
   });
 }

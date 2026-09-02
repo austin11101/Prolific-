@@ -1,0 +1,21 @@
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +56ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPersistenceModule dependencies initialized[39m[38;5;3m +5ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSecurityModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLessonApplicationModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCatalogModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLocalAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:16 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSessionsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[33m[Nest] 2384  - [39m2026/09/02, 11:05:17 [33m   WARN[39m [38;5;3m[LegacyRouteConverter] [39m[33mUnsupported route path: "/api/v1/*". In previous versions, the symbols ?, *, and + were used to denote optional or repeating path parameters. The latest version of "path-to-regexp" now requires the use of named parameters. For example, instead of using a route like /users/* to capture all routes starting with "/users", you should use /users/*path. For more details, refer to the migration guide. Attempting to auto-convert to "/api/v1/{*path}"...[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthSessionController {/api/v1/auth}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/session, GET} route[39m[38;5;3m +7ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCatalogController {/api/v1/catalog}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/catalog, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/catalog/lessons/:revisionId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLocalAuthController {/api/v1/auth}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/register, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSessionsController {/api/v1/sessions}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/sessions, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 2384  - [39m2026/09/02, 11:05:17 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +172ms[39m

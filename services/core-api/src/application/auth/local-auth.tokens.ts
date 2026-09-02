@@ -1,0 +1,1 @@
+export const LOCAL_AUTH_SERVICE = Symbol('LOCAL_AUTH_SERVICE');

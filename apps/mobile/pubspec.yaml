@@ -1,5 +1,5 @@
 name: prolific_mobile
-description: 'A new Flutter project.'
+description: 'The shared Prolific Android and Web learner presentation.'
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  just_audio: ^0.10.6
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
@@ -17,3 +19,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/audio/tutorial_sample.mp3

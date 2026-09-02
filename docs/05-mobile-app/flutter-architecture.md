@@ -4,7 +4,7 @@
 
 | Item              | Value                                                                                                                                                                        |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status            | Sprint 1 architecture baseline; implementation pending                                                                                                                       |
+| Status            | Sprint 1 architecture baseline; shared Android/Web presentation and local tutorial playback implemented through Sprint 3.8                                                   |
 | Scope             | Flutter mobile application boundaries and dependency rules                                                                                                                   |
 | Related contracts | [Offline Lesson Package](./offline-lesson-package.md), [Sync Service](../06-core-backend/sync-service.md), and [shared contracts](../../packages/shared-contracts/README.md) |
 | Domain authority  | [Canonical Domain Model](../architecture/canonical-domain-model.md)                                                                                                          |
@@ -15,6 +15,30 @@
 The mobile application is an offline-first client of the Core API. It renders published lesson packages, persists registered-learner activity locally before network delivery, and preserves exact Lesson Revision identity. It does not own publication, server authorization, canonical progress reconciliation, or content-generation rules.
 
 This document defines boundaries, not a final directory listing. Flutter state management and the local database package remain later design decisions. Implementations must not allow a package choice to reverse the dependency direction below.
+
+## Sprint 3.1 presentation foundation
+
+Sprint 3.1 implements only the presentation subset of this architecture. `app` owns the Material root, theme, and built-in route composition; feature-owned presentation directories own Splash, onboarding, Home, and Topic Discovery; and `core/presentation` owns reused visual primitives. Topic preview records are deterministic feature-owned UI data, not domain or transport models.
+
+No state-management or routing package was added. Screen-local search/filter state uses `StatefulWidget`; account/session state remains a visual guest placeholder. There are no network, storage, authentication, audio, analytics, synchronization, generated-contract, or backend imports. The full review and current authority boundary are recorded in the [Flutter UI Foundation Review](../reviews/FLUTTER-UI-FOUNDATION-REVIEW.md).
+
+## Sprint 3.2W shared Web foundation
+
+Android and Web use the same app root, built-in routes, theme, responsive helpers, feature screens, shared visual components, and deterministic preview data. Central compact/medium/expanded breakpoints drive composition by viewport width. Expanded learner screens receive a Navigation Rail; content width independently determines card-grid columns. Reading/setup text is limited to the shared reading-width token.
+
+The default hash URL strategy supports the current static Web foundation without a routing dependency. Unknown routes and missing local Topic arguments recover safely. Clean-path URLs would require host fallback and a later routing decision. Web code adds no `dart:html`, remote assets, external scripts, network client, browser persistence, analytics, or platform-specific feature duplication. See the [Flutter Web Foundation Review](../reviews/FLUTTER-WEB-FOUNDATION-REVIEW.md).
+
+## Sprint 3.7 Reading Player presentation shell
+
+The existing `/player` route now resolves a feature-owned responsive Reading Player shell. A nullable typed route argument carries one immutable local lesson preview. Missing or unusable data resolves to friendly setup/home recovery rather than raw errors. The authored paragraph is temporarily segmented into display words, punctuation, and whitespace for deterministic manual highlighting. This segmentation is not a Tokenization Profile, Reading Position model, package parser, or audio alignment.
+
+Screen-local state distinguishes visual tutorial readiness/preview/pause, practice readiness/manual preview, and preview completion. There is no clock, timer, persistence, external state manager, or domain-session claim. The pace label is informational. Practice explicitly remains application-silent. Shared Material controls retain keyboard, focus, hover, pointer, disabled, and semantic behavior. See the [Reading Player Shell Review](../reviews/FLUTTER-READING-PLAYER-SHELL-REVIEW.md).
+
+## Sprint 3.8 local tutorial playback
+
+The Reading Player may play one bundled demonstration MP3 from Flutter assets through `TutorialAudioService`. The interface exposes only `load`, `play`, `pause`, `resume`, `stop`, `seekToStart`, and `dispose`; widgets do not import `just_audio` or any player plugin. The concrete adapter uses `just_audio` only for local `setAsset` playback and exposes no URL, streaming, playlist, download, background, notification, Bluetooth, or headset-control behavior.
+
+This does not approve a production speech provider or timing model. The sample asset was copied from the previous English proof into `assets/audio/tutorial_sample.mp3`; Flutter does not execute Python, gTTS, Azure, NestJS, PostgreSQL, Docker, or any backend. Highlighting remains manual and independent from audio. Practice mode stops tutorial audio and remains application-silent. See the [Local Tutorial Audio Playback Review](../reviews/LOCAL-TUTORIAL-AUDIO-PLAYBACK-FOUNDATION.md).
 
 ## Feature-first structure
 

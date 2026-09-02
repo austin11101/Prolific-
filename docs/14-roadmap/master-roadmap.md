@@ -10,22 +10,22 @@
 | Tagline             | Read. Learn. Grow.                                                                                                                   |
 | Mission             | Build South Africa's leading knowledge and reading fluency platform.                                                                 |
 | Platform components | Flutter mobile application; core backend API; PostgreSQL database; content engine; admin dashboard; offline synchronization platform |
-| Current status      | Sprint 2.29 Topic mutation implemented; final disposable revalidation pending and hierarchy remains blocked                          |
+| Current status      | Sprint 3.5 TTS capability evaluation complete; multilingual provider/alignment and platform integration blocked                      |
 
 ## Progress dashboard
 
 | Measure              | Current state                                                                                                                           |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Current milestone    | Milestone 2 - Backend Foundation (in progress)                                                                                          |
-| Current sprint       | Sprint 2 - Database and Backend Foundation; started 2026-07-17                                                                          |
-| Overall progress     | 2 of 13 sprints complete (approximately 15% by sprint count)                                                                            |
+| Current milestone    | Milestone 3 presentation foundation started in parallel; Milestone 2 backend work paused                                                |
+| Current sprint       | Sprint 3.8 - Local Tutorial Audio Playback Foundation complete                                                                          |
+| Overall progress     | 2 baseline roadmap sprints plus bounded Sprint 3.1, 3.2W, 3.4, and 3.5 increments complete                                              |
 | Completed milestones | 1 of 9                                                                                                                                  |
-| Current blockers     | Governed hierarchy, authentication/authorization, seeds, APIs, additional migrations, deployment, and Flutter remain gated              |
-| Upcoming sprint      | Sprint 3 - Core Content Read API                                                                                                        |
+| Current blockers     | Multilingual TTS/word alignment, mobile integration, governed hierarchy, auth, APIs, migrations, and deployment remain gated            |
+| Upcoming sprint      | Product/architecture approval must choose the next presentation increment or resume Sprint 3 Core Content Read API                      |
 | Risk level           | Medium because physical persistence, privacy/legal, mobile package, and later sync decisions remain intentionally deferred              |
 | Repository status    | Monorepo scaffold complete on `main`; CI configured                                                                                     |
 | Environment status   | Cleared: Docker/PostgreSQL healthy on `desktop-linux`; Flutter/Dart resolve under `C:\Development\flutter`; no legacy process reference |
-| Documentation status | Sprint 2.29 narrow Topic contract, atomic mutation, relationship/order preservation, DI, rollback, and review complete                  |
+| Documentation status | Sprint 3.8 local bundled tutorial playback complete; real timing/alignment and backend/database integration blocked                    |
 
 Progress is based on completed sprints, not elapsed time or effort. Sprint acceptance and exit criteria determine completion.
 
@@ -39,17 +39,17 @@ Content generation in Sprint 10 means a controlled scripting/import workflow tha
 
 ## Roadmap at a glance
 
-| Milestone                    | Sprints | Status      | Outcome                                                                |
-| ---------------------------- | ------- | ----------- | ---------------------------------------------------------------------- |
-| 1. Planning and Architecture | 0-1     | Completed   | Approved foundation, contracts, and implementation sequence            |
-| 2. Backend Foundation        | 2-3     | In progress | PostgreSQL-backed core API and controlled lesson read workflow         |
-| 3. Mobile Foundation         | 4-5     | Planned     | Navigable Flutter shell and durable offline lesson access              |
-| 4. Reading Engine            | 6-7     | Planned     | Tutorial, silent practice, sessions, and local progress                |
-| 5. Synchronization           | 8       | Planned     | Idempotent delayed synchronization and conflict handling               |
-| 6. Administration            | 9       | Planned     | Authorized review and publishing operations                            |
-| 7. Content Engine            | 10      | Planned     | Validated draft ingestion and content preparation                      |
-| 8. Polish                    | 11      | Planned     | Security, accessibility, reliability, performance, and release quality |
-| 9. MVP Release               | 12      | Planned     | Production deployment and supported launch                             |
+| Milestone                    | Sprints        | Status      | Outcome                                                                |
+| ---------------------------- | -------------- | ----------- | ---------------------------------------------------------------------- |
+| 1. Planning and Architecture | 0-1            | Completed   | Approved foundation, contracts, and implementation sequence            |
+| 2. Backend Foundation        | 2-3            | In progress | PostgreSQL-backed core API and controlled lesson read workflow         |
+| 3. Mobile Foundation         | 3.1, 3.2W, 4-5 | In progress | Shared Android/Web presentation complete; integration/storage planned  |
+| 4. Reading Engine            | 6-7            | Planned     | Tutorial, silent practice, sessions, and local progress                |
+| 5. Synchronization           | 8              | Planned     | Idempotent delayed synchronization and conflict handling               |
+| 6. Administration            | 9              | Planned     | Authorized review and publishing operations                            |
+| 7. Content Engine            | 10             | Planned     | Validated draft ingestion and content preparation                      |
+| 8. Polish                    | 11             | Planned     | Security, accessibility, reliability, performance, and release quality |
+| 9. MVP Release               | 12             | Planned     | Production deployment and supported launch                             |
 
 ---
 
@@ -231,7 +231,7 @@ npm run ci
 
 ## Milestone 3 - Mobile Foundation
 
-**Status:** Planned
+**Status:** In progress; Sprint 3.1 and 3.2W presentation foundations complete
 
 ### Objective
 
@@ -281,6 +281,74 @@ flutter build apk --debug
 ```
 
 **Dependencies:** Sprints 1 and 3; approved state management, authentication contract, role/session policy, design foundations, and API contract.
+
+### Sprint 3.1 - Flutter UI Foundation and Learner Entry Flow
+
+**Status:** Complete 2026-08-05
+
+**Goal:** Establish the presentation-only learner shell while backend feature development is paused.
+
+**Scope:** Material 3 theme/tokens, built-in navigation, responsive/shared presentation primitives, Splash, Welcome, guest/account choice, guest Home, Topic Discovery, deterministic local preview data, accessibility behavior, widget/navigation tests, and review documentation.
+
+**Excluded work:** Authentication, HTTP/backend integration, production catalog data, state-management package selection, lesson selection/player, audio, persistence, downloads, synchronization, analytics, database/schema work, and backend changes.
+
+**Outcome:** The local `Splash -> Welcome -> Access Choice -> Home -> Topic Discovery` flow is implemented and reviewed in the [Flutter UI Foundation Review](../reviews/FLUTTER-UI-FOUNDATION-REVIEW.md). Guest limitations and account placeholders match approved product behavior. The backend baseline is unchanged. This bounded presentation increment does not satisfy Sprint 4's API mapping, session architecture, language-selection, or integration scope.
+
+### Sprint 3.2W - Flutter Web Foundation and Responsive Learner UI
+
+**Status:** Complete 2026-08-05
+
+**Goal:** Extend the same local presentation codebase to responsive browser and desktop-width layouts without introducing integration behavior.
+
+**Scope:** Minimal Web bootstrap/metadata, compact/medium/expanded breakpoints, responsive shell, expanded Navigation Rail, desktop Home/Topic grids, Topic Details and local setup preview routes, keyboard/focus/pointer behavior, browser routing recovery, Web/mobile tests, Web build, Android regression build, Chrome launch evidence, and review documentation.
+
+**Excluded work:** Backend/API integration, authentication, persistence, actual lesson availability, reading-player behavior, audio, downloads, synchronization, analytics, AI, database/schema work, separate frontend framework, and public deployment.
+
+**Outcome:** Android and Web share one reviewed Flutter UI. The [Flutter Web Foundation Review](../reviews/FLUTTER-WEB-FOUNDATION-REVIEW.md) records responsive behavior, browser limitations, 19 passing tests, successful Web/Android builds, and local Chrome launch. The player remains a placeholder, the backend/database baseline is unchanged, and Sprint 4 integration dependencies remain unresolved.
+
+### Sprint 3.4 - Tutorial Audio Generation Foundation
+
+**Status:** Complete 2026-08-05
+
+**Outcome:** A standalone Python 3.12/gTTS utility established deterministic MP3
+generation, safe overwrite behavior, explicit launch-language mapping, CLI, and
+network-independent tests. gTTS supports only the English mapping for the approved
+launch set and provides no word timestamps. No platform integration occurred.
+
+### Sprint 3.5 - TTS Capability Evaluation and English Audio Proof
+
+**Status:** Complete 2026-08-05 — provider decision remains proposed
+
+**Outcome:** One controlled English proof succeeded; metadata and overwrite behavior
+were verified; the utility now uses a provider-neutral contract and explicit
+capability states. Current official evidence identifies Azure as the next
+English/isiZulu trial candidate, but no evaluated provider covers Sepedi and no voice
+has human approval. [ADR-018](../decisions/ADR-018-tutorial-speech-provider-strategy.md)
+is proposed, tutorial alignment is unresolved, and Flutter/backend integration stays
+blocked. See the [TTS Capability Evaluation](../reviews/TTS-CAPABILITY-EVALUATION.md).
+
+### Sprint 3.6 - Azure TTS Proof and Multilingual Voice Evaluation
+
+**Status:** Adapter complete 2026-08-05 — live proofs blocked
+
+Sprint 3.6 implemented the Azure adapter, explicit `en-ZA`/`zu-ZA` proof voices,
+safe credential preflight, and mocked word-boundary handling. Live Azure English is
+blocked by missing credentials; live isiZulu is blocked by missing credentials and
+human-approved text. Sepedi remains research-only. No production provider, Flutter
+integration, or backend/database work is authorized. See the
+[Sprint 3.6 review](../reviews/AZURE-TTS-PROOF-AND-MULTILINGUAL-EVALUATION.md).
+
+### Sprint 3.7 - Responsive Reading Player UI Shell
+
+**Status:** Complete 2026-08-05 — presentation only
+
+**Outcome:** The existing `/player` placeholder is replaced by one shared Android/Web Reading Player shell with immutable local preview data, punctuation-preserving temporary segmentation, manual selected-word controls, visual tutorial and application-silent practice phases, preview-only completion, responsive constrained layouts, accessible semantics, and safe route recovery. No audio, Timer-driven WPM behavior, provider alignment, package loading, progress persistence, API, or database integration was added. See the [Reading Player Shell Review](../reviews/FLUTTER-READING-PLAYER-SHELL-REVIEW.md).
+
+### Sprint 3.8 - Local Tutorial Audio Playback Foundation
+
+**Status:** Complete 2026-08-07 - local demonstration only
+
+**Outcome:** Flutter now plays one bundled English proof MP3 from assets through a narrow `TutorialAudioService` backed by `just_audio`. The Reading Player can load, play, pause, resume, restart, stop, and dispose local tutorial audio; practice stops playback and remains silent. Highlighting is still manual and independent from audio. No Python execution, gTTS/Azure generation, backend/API, PostgreSQL, Docker, download package, synchronization, Reading Session persistence, analytics, authentication, WPM timing, or production alignment was added. See the [Local Tutorial Audio Playback Review](../reviews/LOCAL-TUTORIAL-AUDIO-PLAYBACK-FOUNDATION.md).
 
 ### Sprint 5 - Offline Lesson Storage and Downloads
 

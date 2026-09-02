@@ -1,3 +1,4 @@
+lets build the following :
 # Prolific
 
 Prolific is a South African knowledge and reading fluency platform designed to help users improve their reading pace, confidence, and comprehension through guided reading lessons.
@@ -51,7 +52,7 @@ Prolific will become a South African digital knowledge library that helps users 
 
 Monorepo for the Prolific mobile application, administration dashboard, content engine, core API, shared contracts, and supporting infrastructure.
 
-Sprint 0 established the tooling and executable scaffolds. Sprint 1 completed the reviewed architecture baseline, and Sprint 2 formally started on 2026-07-17 after its environment conditions cleared. Sprint 2.5 through Sprint 2.16 established the verified, empty, drift-free [Foundation Baseline](docs/reviews/FOUNDATION-BASELINE.md); Sprint 2.17 through Sprint 2.22 implemented all five repository adapters; and Sprint 2.23 recorded [Persistence Layer Final Review](docs/reviews/PERSISTENCE-LAYER-FINAL-REVIEW.md) `PASS WITH RESTRICTIONS`. Sprint 2.24 through Sprint 2.26 implemented read-only [Language](docs/reviews/LANGUAGE-QUERY-SERVICE-REVIEW.md), [Category](docs/reviews/CATEGORY-QUERY-SERVICE-REVIEW.md), and [Topic](docs/reviews/TOPIC-QUERY-SERVICE-REVIEW.md) queries. Sprint 2.27 implemented [Actor Principal Provisioning](docs/reviews/ACTOR-PROVISIONING-SERVICE-REVIEW.md), Sprint 2.28 implemented [Category Ordinary Mutation](docs/reviews/CATEGORY-MUTATION-SERVICE-REVIEW.md), and Sprint 2.29 implements [Topic Ordinary Mutation](docs/reviews/TOPIC-MUTATION-SERVICE-REVIEW.md) through a narrow atomic repository operation that preserves Category, parent, and display order. [Governed Topic Hierarchy](docs/04-architecture/governed-topic-hierarchy-command.md), taxonomy-audit orchestration, authentication, authorization, APIs, seeds, additional migrations, deployment, and Flutter remain blocked or unimplemented.
+Sprint 0 established the tooling and executable scaffolds. Sprint 1 completed the reviewed architecture baseline, and Sprint 2 formally started on 2026-07-17 after its environment conditions cleared. Sprint 2.5 through Sprint 2.16 established the verified, empty, drift-free [Foundation Baseline](docs/reviews/FOUNDATION-BASELINE.md); Sprint 2.17 through Sprint 2.22 implemented all five repository adapters; and Sprint 2.23 recorded [Persistence Layer Final Review](docs/reviews/PERSISTENCE-LAYER-FINAL-REVIEW.md) `PASS WITH RESTRICTIONS`. Sprint 2.24 through Sprint 2.29 implemented bounded taxonomy queries and mutations, with final Topic disposable/live revalidation still recorded as pending. Backend feature development is paused. Sprint 3.1 established the presentation-only [Flutter UI Foundation](docs/reviews/FLUTTER-UI-FOUNDATION-REVIEW.md), Sprint 3.2W completed the shared Android/Web [Flutter Web Foundation](docs/reviews/FLUTTER-WEB-FOUNDATION-REVIEW.md), Sprint 3.4 through Sprint 3.6 established the isolated tutorial-speech evaluation path, Sprint 3.7 completed the [Responsive Reading Player Shell](docs/reviews/FLUTTER-READING-PLAYER-SHELL-REVIEW.md), and Sprint 3.8 added local bundled tutorial MP3 playback in Flutter. Governed hierarchy, taxonomy-audit orchestration, authentication, authorization, APIs, seeds, additional migrations, production timing/alignment/persistence, production deployment, and mobile/backend integration remain blocked or unimplemented.
 
 ## Project Status
 
@@ -59,7 +60,14 @@ Sprint 0 established the tooling and executable scaffolds. Sprint 1 completed th
 - Environment: complete and verified outside OneDrive.
 - Sprint 0: complete.
 - Sprint 1: documentation/architecture complete; its historical `PASS WITH CONDITIONS` environment conditions are cleared.
-- Sprint 2: started 2026-07-17; the [Foundation Baseline](docs/reviews/FOUNDATION-BASELINE.md) freezes the applied database state. Read-only taxonomy queries, Actor provisioning, and ordinary Category mutation are complete. Topic ordinary mutation is implemented with final disposable/live revalidation pending.
+- Sprint 2: backend foundation implementation is paused; the [Foundation Baseline](docs/reviews/FOUNDATION-BASELINE.md) remains unchanged. Topic ordinary mutation is implemented with final disposable/live revalidation pending.
+- Sprint 3.1: [Flutter UI Foundation](docs/reviews/FLUTTER-UI-FOUNDATION-REVIEW.md) complete using local presentation data only. Splash, Welcome, guest/account choice, guest Home, Topic Discovery, Material 3 theme, routes, shared components, and tests are implemented. Authentication, backend integration, lesson selection/player, offline persistence, and synchronization remain unimplemented.
+- Sprint 3.2W: [Flutter Web Foundation](docs/reviews/FLUTTER-WEB-FOUNDATION-REVIEW.md) complete. Android and Web share one responsive Flutter codebase with compact/medium/expanded layouts, desktop navigation, local lesson-setup previews, Web build, and Chrome launch evidence. Its player placeholder was superseded by Sprint 3.7; public deployment was not performed.
+- Sprint 3.4: [Tutorial Audio Generation Foundation](docs/reviews/TUTORIAL-AUDIO-GENERATION-FOUNDATION.md) complete as an isolated Python 3.12/gTTS tool with deterministic filenames, explicit overwrite protection, mocked tests, and no platform integration. The installed gTTS catalogue supports the English mapping; isiZulu and Sepedi generation plus production provider approval remain deferred.
+- Sprint 3.5: [TTS Capability Evaluation](docs/reviews/TTS-CAPABILITY-EVALUATION.md) complete with one local English gTTS proof and provider-neutral generation.
+- Sprint 3.6: [Azure TTS Proof and Multilingual Voice Evaluation](docs/reviews/AZURE-TTS-PROOF-AND-MULTILINGUAL-EVALUATION.md) adapter and offline proof pipeline complete. Live English and isiZulu proofs remain blocked by missing Azure credentials; isiZulu also requires approved proof text. [ADR-018](docs/decisions/ADR-018-tutorial-speech-provider-strategy.md) remains proposed, Sepedi is unresolved, and Flutter integration remains blocked.
+- Sprint 3.7: [Responsive Reading Player Shell](docs/reviews/FLUTTER-READING-PLAYER-SHELL-REVIEW.md) complete for Android and Web. Local lesson text, manual highlighting, visual tutorial/practice states, responsive controls, recovery, and accessibility semantics are implemented. Audio, WPM timing, alignment, persistence, backend integration, and real completion remain absent.
+- Sprint 3.8: [Local Tutorial Audio Playback Review](docs/reviews/LOCAL-TUTORIAL-AUDIO-PLAYBACK-FOUNDATION.md) complete. Flutter plays one bundled MP3 asset through a narrow local audio service using `just_audio`; the Reading Player stops audio on practice/navigation/dispose and keeps highlighting manual. There is still no provider generation, backend integration, alignment, WPM timing, persistence, synchronization, or production completion.
 - Persistence architecture: [ADR-012](docs/decisions/ADR-012-use-prisma-for-core-api-persistence.md) approves Prisma ORM, Prisma Migrate, Core API migration ownership, explicit repository interfaces, and application-service transaction ownership. The [Persistence Architecture](docs/04-architecture/persistence-architecture.md) records the implemented lifecycle, opaque transaction context, contracts, errors, and DI boundary. The local database retains the approved empty five-table foundation.
 - Content architecture: [ADR-013](docs/decisions/ADR-013-use-lesson-variants-and-immutable-revisions.md) approves stable Lessons, Language/Difficulty Lesson Variants, immutable published Lesson Revisions, Variant-scoped numbering, one Working Draft, and optimistic concurrency.
 - Package architecture: [ADR-014](docs/decisions/ADR-014-use-structured-content-blocks-and-revision-packages.md) approves structured Content Blocks, Revision-scoped Reading Positions, versioned profiles, SHA-256 integrity, and the immutable learner package boundary.
@@ -80,6 +88,7 @@ apps/
   content-engine/     Reserved content scripting engine workspace
 services/
   core-api/           NestJS API scaffold
+  tutorial-audio/     Standalone Python tutorial MP3 generator
 packages/
   shared-contracts/   Language-neutral JSON Schema specifications
 infrastructure/       Infrastructure documentation and future definitions
@@ -93,6 +102,7 @@ docs/                 Product and architecture documentation
 - npm 11 or later.
 - Flutter 3.41 or a compatible stable release.
 - Docker with Docker Compose v2.
+- Python 3.12 for the standalone tutorial-audio generator.
 
 ## Initial Setup
 

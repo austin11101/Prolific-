@@ -16,6 +16,34 @@ enum TaxonomyLifecycleState {
   @@map("taxonomy_lifecycle_state")
 }
 
+enum LessonDifficulty {
+  BEGINNER     @map("beginner")
+  INTERMEDIATE @map("intermediate")
+  ADVANCED     @map("advanced")
+
+  @@map("lesson_difficulty")
+}
+
+enum WorkingDraftState {
+  DRAFT             @map("draft")
+  IN_REVIEW         @map("in_review")
+  CHANGES_REQUESTED @map("changes_requested")
+  APPROVED          @map("approved")
+  PUBLISHED         @map("published")
+
+  @@map("working_draft_state")
+}
+
+enum ContentBlockType {
+  HEADING   @map("heading")
+  PARAGRAPH @map("paragraph")
+  CALLOUT   @map("callout")
+  FACT      @map("fact")
+  QUOTE     @map("quote")
+
+  @@map("content_block_type")
+}
+
 model ActorPrincipal {
   id        String   @id(map: "pk__actor_principals") @map("id") @db.Uuid
   actorKind String   @map("actor_kind") @db.Text
@@ -39,6 +67,8 @@ model Language {
   retiredAt        DateTime? @map("retired_at") @db.Timestamptz(6)
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  lessonVariants LessonVariant[] @relation("LanguageLessonVariants")
 
   // Implemented in migration SQL after schema approval. Explicit PostgreSQL "C" collation on normalized_tag and normalized_name.
   // Implemented in migration SQL after schema approval. Six CHECK constraints for non-blank tags/names, non-negative display_order, and retirement/content consistency.
@@ -88,6 +118,7 @@ model Topic {
   targetedChangeRecords        TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordTopicTarget")
   previousParentChangeRecords  TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordPreviousParent")
   resultingParentChangeRecords TaxonomyChangeRecord[] @relation("TaxonomyChangeRecordResultingParent")
+  lessons                      Lesson[]               @relation("TopicLessons")
 
   // Implemented in migration SQL after schema approval. Partial unique index uq__topics__active_root_name for ACTIVE root siblings.
   // Implemented in migration SQL after schema approval. Partial unique index uq__topics__active_child_name for ACTIVE non-root siblings.
@@ -134,4 +165,207 @@ model TaxonomyChangeRecord {
   @@index([previousParentTopicId], map: "ix__taxonomy_change_records__previous_parent")
   @@index([resultingParentTopicId], map: "ix__taxonomy_change_records__resulting_parent")
   @@map("taxonomy_change_records")
+}
+
+model ContentSource {
+  id             String   @id(map: "pk__content_sources") @map("id") @db.Uuid
+  sourceKind     String   @map("source_kind") @db.Text
+  originTitle    String?  @map("origin_title") @db.Text
+  originAuthor   String?  @map("origin_author") @db.Text
+  originUri      String?  @map("origin_uri") @db.Text
+  licenseCode    String?  @map("license_code") @db.Text
+  attributionNote String? @map("attribution_note") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  lessons Lesson[]
+
+  @@map("content_sources")
+}
+
+model Lesson {
+  id              String                 @id(map: "pk__lessons") @map("id") @db.Uuid
+  topicId         String                 @map("topic_id") @db.Uuid
+  contentSourceId String?                @map("content_source_id") @db.Uuid
+  canonicalTitle  String                 @map("canonical_title") @db.Text
+  lifecycleState  TaxonomyLifecycleState @default(ACTIVE) @map("lifecycle_state")
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  topic         Topic          @relation("TopicLessons", fields: [topicId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__lessons__topic_id__topics")
+  contentSource ContentSource? @relation(fields: [contentSourceId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__lessons__content_source_id__content_sources")
+  variants      LessonVariant[]
+
+  @@index([topicId, lifecycleState, id], map: "ix__lessons__topic_lifecycle")
+  @@map("lessons")
+}
+
+model LessonVariant {
+  id             String                 @id(map: "pk__lesson_variants") @map("id") @db.Uuid
+  lessonId       String                 @map("lesson_id") @db.Uuid
+  languageId     String                 @map("language_id") @db.Uuid
+  difficulty     LessonDifficulty       @map("difficulty")
+  lifecycleState TaxonomyLifecycleState @default(ACTIVE) @map("lifecycle_state")
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime               @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  lesson       Lesson          @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__lesson_variants__lesson_id__lessons")
+  language     Language        @relation("LanguageLessonVariants", fields: [languageId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__lesson_variants__language_id__languages")
+  workingDraft WorkingDraft?
+  revisions    LessonRevision[]
+
+  @@unique([lessonId, languageId, difficulty], map: "uq__lesson_variants__lesson_language_difficulty")
+  @@index([languageId, lifecycleState, id], map: "ix__lesson_variants__language_lifecycle")
+  @@map("lesson_variants")
+}
+
+model WorkingDraft {
+  id               String            @id(map: "pk__working_drafts") @map("id") @db.Uuid
+  variantId        String            @unique(map: "uq__working_drafts__variant_id") @map("variant_id") @db.Uuid
+  state            WorkingDraftState @default(DRAFT) @map("state")
+  title            String            @map("title") @db.Text
+  bodyText         String            @map("body_text") @db.Text
+  wordCount        Int               @map("word_count") @db.Integer
+  estimatedReadingTimeSeconds Int    @map("estimated_reading_time_seconds") @db.Integer
+  concurrencyToken String            @map("concurrency_token") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  variant LessonVariant @relation(fields: [variantId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__working_drafts__variant_id__lesson_variants")
+
+  @@map("working_drafts")
+}
+
+model LessonRevision {
+  id               String   @id(map: "pk__lesson_revisions") @map("id") @db.Uuid
+  variantId        String   @map("variant_id") @db.Uuid
+  revisionNumber   Int      @map("revision_number") @db.Integer
+  title            String   @map("title") @db.Text
+  wordCount        Int      @map("word_count") @db.Integer
+  estimatedReadingTimeSeconds Int @map("estimated_reading_time_seconds") @db.Integer
+  isPublished      Boolean  @default(false) @map("is_published")
+  schemaVersion    String   @map("schema_version") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  variant          LessonVariant          @relation(fields: [variantId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__lesson_revisions__variant_id__lesson_variants")
+  contentBlocks    ContentBlock[]
+  readingPositions ReadingPosition[]
+  audioMetadata    TutorialAudioMetadata?
+  packageManifest  PackageManifest?
+
+  @@unique([variantId, revisionNumber], map: "uq__lesson_revisions__variant_revision")
+  @@index([variantId, isPublished, revisionNumber(sort: Desc)], map: "ix__lesson_revisions__variant_published")
+  @@map("lesson_revisions")
+}
+
+model ContentBlock {
+  id                  String           @id(map: "pk__content_blocks") @map("id") @db.Uuid
+  revisionId          String           @map("revision_id") @db.Uuid
+  blockType           ContentBlockType @map("block_type")
+  canonicalDisplayText String          @map("canonical_display_text") @db.Text
+  isReadable          Boolean          @default(true) @map("is_readable")
+  displayOrder        Int              @map("display_order") @db.Integer
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revision         LessonRevision    @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__content_blocks__revision_id__lesson_revisions")
+  readingPositions ReadingPosition[]
+
+  @@index([revisionId, displayOrder, id], map: "ix__content_blocks__revision_order")
+  @@map("content_blocks")
+}
+
+model ReadingPosition {
+  id             String   @id(map: "pk__reading_positions") @map("id") @db.Uuid
+  revisionId     String   @map("revision_id") @db.Uuid
+  blockId        String   @map("block_id") @db.Uuid
+  unitId         String   @map("unit_id") @db.Uuid
+  positionIndex  Int      @map("position_index") @db.Integer
+  spanStart      Int      @map("span_start") @db.Integer
+  spanEnd        Int      @map("span_end") @db.Integer
+  surfaceText    String   @map("surface_text") @db.Text
+  normalizedText String   @map("normalized_text") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revision LessonRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__reading_positions__revision_id__lesson_revisions")
+  block    ContentBlock   @relation(fields: [blockId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__reading_positions__block_id__content_blocks")
+
+  @@unique([revisionId, positionIndex], map: "uq__reading_positions__revision_position")
+  @@index([revisionId, positionIndex], map: "ix__reading_positions__revision_order")
+  @@map("reading_positions")
+}
+
+model TutorialAudioMetadata {
+  id               String   @id(map: "pk__tutorial_audio_metadata") @map("id") @db.Uuid
+  revisionId       String   @unique(map: "uq__tutorial_audio_metadata__revision_id") @map("revision_id") @db.Uuid
+  audioStoragePath String   @map("audio_storage_path") @db.Text
+  durationSeconds  Float    @map("duration_seconds") @db.DoublePrecision
+  fileSizeBytes    BigInt   @map("file_size_bytes") @db.BigInt
+  mimeType         String   @map("mime_type") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revision LessonRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__tutorial_audio_metadata__revision_id__lesson_revisions")
+
+  @@map("tutorial_audio_metadata")
+}
+
+model PackageManifest {
+  id                        String   @id(map: "pk__package_manifests") @map("id") @db.Uuid
+  revisionId                String   @unique(map: "uq__package_manifests__revision_id") @map("revision_id") @db.Uuid
+  packageChecksum           String   @map("package_checksum") @db.Text
+  schemaVersion             String   @map("schema_version") @db.Text
+  tokenizationProfile       String   @map("tokenization_profile") @db.Text
+  tokenizationProfileVersion String  @map("tokenization_profile_version") @db.Text
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  revision LessonRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__package_manifests__revision_id__lesson_revisions")
+
+  @@map("package_manifests")
+}
+
+model User {
+  id           String   @id(map: "pk__users") @map("id") @db.Uuid
+  email        String   @unique(map: "uq__users__email") @map("email") @db.Text
+  displayName  String   @map("display_name") @db.Text
+  passwordHash String   @map("password_hash") @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  refreshTokens   RefreshToken[]
+  readingSessions ReadingSession[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id(map: "pk__refresh_tokens") @map("id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique(map: "uq__refresh_tokens__token_hash") @map("token_hash") @db.Text
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk__refresh_tokens__user_id__users")
+
+  @@index([userId], map: "ix__refresh_tokens__user_id")
+  @@map("refresh_tokens")
+}
+
+model ReadingSession {
+  id               String   @id(map: "pk__reading_sessions") @map("id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  lessonRevisionId String   @map("lesson_revision_id") @db.Uuid
+  eventId          String   @unique(map: "uq__reading_sessions__event_id") @map("event_id") @db.Uuid
+  readingMode      String   @map("reading_mode") @db.Text
+  paceWpm          Int      @map("pace_wpm") @db.Integer
+  wordsRead        Int      @map("words_read") @db.Integer
+  durationSeconds  Int      @map("duration_seconds") @db.Integer
+  isCompleted      Boolean  @default(false) @map("is_completed")
+  occurredAt       DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk__reading_sessions__user_id__users")
+
+  @@index([userId, occurredAt(sort: Desc)], map: "ix__reading_sessions__user_time")
+  @@map("reading_sessions")
 }
